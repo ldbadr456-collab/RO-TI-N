@@ -11,7 +11,7 @@
 <style>
 :root{--bg:#0f1115;--card:#181b22;--tx:#eef1f8;--mut:#8b93a7;--ac:#5b9dff}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:14px 14px 90px}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:calc(14px + env(safe-area-inset-top,0px)) 14px 100px;transition:background .6s}
 .card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px}
 .mut,small{color:var(--mut)}
 input,select,button,textarea{font:inherit;width:100%;margin-top:8px;padding:11px;border-radius:12px;border:0;background:#242934;color:var(--tx)}
@@ -45,6 +45,30 @@ nav button.on{color:var(--ac)}
 .wk{display:flex;gap:6px;margin-top:6px}
 .wd{flex:1;text-align:center;background:#242934;border-radius:10px;padding:6px 0;font-size:18px}
 .wd.on{outline:2px solid var(--ac)}
+.card{box-shadow:0 4px 16px rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.05)}
+button,.chip,.task,.wd,.rg,.cd{transition:transform .12s,opacity .2s}
+button:active,.chip:active,.wd:active,.rg:active,.cd:active{transform:scale(.96)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ac)}
+.track i{transition:width .6s ease}
+nav button.on{box-shadow:inset 0 3px 0 var(--ac)}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.fade{animation:fade .35s ease}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cd{aspect-ratio:1;border-radius:10px;padding:4px 1px;text-align:center;display:flex;flex-direction:column;justify-content:space-between;background:#1e222b}
+.cd small{font-size:11px}.cd b{font-size:11px}
+.cd.sel{outline:2px solid var(--ac)}.cd.td small{color:var(--ac);font-weight:bold}
+.cw{text-align:center;font-size:11px;color:var(--mut)}
+.alarm{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px;color:#fff;background-size:cover;background-position:center}
+.alarm .atime{font-size:78px;font-weight:800;letter-spacing:2px;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.alarm .albl{font-size:26px;font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.alarm .ash{font-size:16px;opacity:.85}
+.alarm .art svg{width:170px;height:170px;animation:pulse 1.2s infinite}
+.alarm .abtn{width:100%;max-width:340px;padding:18px;border-radius:40px;font-size:20px;background:#fff;color:#000;margin:0}
+.alarm .abtn.sn{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4)}
+@keyframes pulse{50%{transform:scale(1.08)}}
+.thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;flex:none}
+nav{overflow-x:auto}
+nav button{flex:1 0 auto;min-width:62px;padding-left:6px;padding-right:6px}
 </style>
 </head>
 <body>
@@ -55,6 +79,8 @@ nav button.on{color:var(--ac)}
   <button id="b-meals" onclick="go('meals')">🍽️<br>الوجبات</button>
   <button id="b-week" onclick="go('week')">📈<br>المتابعة</button>
   <button id="b-money" onclick="go('money')">💰<br>المال</button>
+  <button id="b-gym" onclick="go('gym')">🏋️<br>الجيم</button>
+  <button id="b-ai" onclick="go('ai')">🤖<br>المساعد</button>
   <button id="b-manage" onclick="go('manage')">⚙️<br>إدارة</button>
 </nav>
 
@@ -122,7 +148,7 @@ const SH={
   n:{n:"ليل",i:"🌙",t:"22:00 – 06:00",c:"#818cf8",bg:"#0d0f1e"},
   o:{n:"راحة",i:"🏖️",t:"يوم راحة",c:"#34d399",bg:"#0c1a13"}
 };
-let flipNext=false, offSel=null;
+let flipNext=false, offSel=null, tabFade=false;
 const dd=(a,b)=>Math.round((new Date(a.getFullYear(),a.getMonth(),a.getDate())-new Date(b.getFullYear(),b.getMonth(),b.getDate()))/864e5);
 function shiftOf(d){
   const ov=(D.sov||{})[dk(d)]; if(ov) return ov;
@@ -150,7 +176,7 @@ function cycleDay(key){
 function vShift(){
   const cur=shiftOf(new Date()), S=cur?SH[cur]:null;
   let h=`<div class="card" style="border:1px solid ${S?S.c:"#242934"}">
-    <b style="font-size:18px">${S?S.i+" شيفت "+S.n:"لم تحدد شيفتك بعد"}</b><br><small>${S?S.t:"اضبط نظام الشيفتات من تبويب ⚙️ إدارة"}</small>
+    <b style="font-size:18px">${S?S.i+" شيفت "+S.n:"لم تحدد شيفتك بعد"}</b><br><small>${S?S.t:"اضبط نظام الشيفتات من تبويب ⚙️ إدارة"}</small>${nxA()}
     <div class="chips">${["m","e","n","o"].map(k=>`<span class="chip ${cur===k?"on":""}" onclick="setShift('${k}')">${SH[k].i} ${SH[k].n}</span>`).join("")}<span class="chip" onclick="setShift('')">🔄 تلقائي</span></div><div class="wk">`;
   for(let i=0;i<7;i++){
     const d=new Date(); d.setDate(d.getDate()+i); const x=shiftOf(d);
@@ -198,29 +224,54 @@ async function cloudInit(){
     const B="https://www.gstatic.com/firebasejs/10.12.2/";
     await loadJS(B+"firebase-app-compat.js"); await loadJS(B+"firebase-auth-compat.js"); await loadJS(B+"firebase-firestore-compat.js");
     firebase.initializeApp(FB); fdb=firebase.firestore();
-    firebase.auth().onAuthStateChanged(async u=>{ cu=u; if(u) await cloudSync(); render(); });
+    firebase.auth().onAuthStateChanged(async u=>{ cu=u; if(u) await cloudSync(); plLoadAll(); render(); });
   }catch(e){ cloudMsg="تعذّر تحميل الخدمة، تأكد من الإنترنت"; }
 }
-async function pushNow(){
+const SYN=()=>{try{return JSON.parse(localStorage.getItem("routine_sync"))||{};}catch(e){return {};}};
+const markSyn=uid=>{const m=SYN(); m[uid]=1; try{localStorage.setItem("routine_sync",JSON.stringify(m));}catch(e){}};
+const stashLocal=()=>{ try{ localStorage.setItem("routine_pre_sync",JSON.stringify(D)); }catch(e){} };
+async function pushNow(prev){
   D._t=D._t||Date.now();
-  await fdb.collection("users").doc(cu.uid).set({data:JSON.stringify(D),t:D._t});
+  const o={data:JSON.stringify(D),t:D._t}; if(prev) o.prev=prev;      // prev = النسخة السابقة من الحساب
+  await fdb.collection("users").doc(cu.uid).set(o,{merge:true});
 }
 async function cloudSync(){
   try{
-    const snap=await fdb.collection("users").doc(cu.uid).get();
+    const snap=await fdb.collection("users").doc(cu.uid).get(), first=!SYN()[cu.uid];
     if(snap.exists){
-      const c=JSON.parse(snap.data().data), lt=D._t||0, ct=c._t||0;
+      const raw=snap.data().data, c=JSON.parse(raw), lt=D._t||0, ct=c._t||0;
+      if(first){
+        if(confirm("لقينا بيانات محفوظة فحسابك.\nموافق = استرجاعها (تعوّض بيانات هاد الجهاز)\nإلغاء = نحتفظ ببيانات هاد الجهاز ونرفعها للحساب")){
+          stashLocal(); D=c; try{localStorage.setItem(K,JSON.stringify(D));}catch(e){} cloudMsg="✅ تم استرجاع بياناتك من الحساب";
+        } else { D._t=Date.now(); await pushNow(raw); cloudMsg="✅ تم رفع بيانات هاد الجهاز (نسخة الحساب القديمة محفوظة)"; }
+        markSyn(cu.uid); return;
+      }
       if(ct>lt){
         if(!lt || confirm("لقينا بيانات أحدث فحسابك. نعوضو بها بيانات هاد الجهاز؟\n(موافق = استرجاع من الحساب • إلغاء = رفع بيانات هاد الجهاز)")){
-          D=c; try{localStorage.setItem(K,JSON.stringify(D));}catch(e){} cloudMsg="✅ تم استرجاع بياناتك من الحساب"; return;
+          stashLocal(); D=c; try{localStorage.setItem(K,JSON.stringify(D));}catch(e){} cloudMsg="✅ تم استرجاع بياناتك من الحساب"; return;
         }
-        D._t=Date.now(); await pushNow(); cloudMsg="✅ تم رفع بيانات هاد الجهاز"; return;
+        D._t=Date.now(); await pushNow(raw); cloudMsg="✅ تم رفع بيانات هاد الجهاز"; return;
       }
-      if(lt>ct){ await pushNow(); cloudMsg="✅ تم رفع بياناتك للحساب"; return; }
+      if(lt>ct){ await pushNow(raw); cloudMsg="✅ تم رفع بياناتك للحساب"; return; }
       cloudMsg="✅ كلشي متزامن"; return;
     }
-    await pushNow(); cloudMsg="✅ تم حفظ بياناتك فالحساب";
+    await pushNow(); markSyn(cu.uid); cloudMsg="✅ تم حفظ بياناتك فالحساب";
   }catch(e){ cloudMsg="⚠️ فشلت المزامنة: "+(e.code||e.message); }
+}
+async function restorePrev(){
+  if(!cu) return;
+  try{
+    const sn=await fdb.collection("users").doc(cu.uid).get(), p=sn.exists&&sn.data().prev;
+    if(!p) return toast("ما كاينش نسخة سابقة فالحساب");
+    if(!confirm("نسترجعو النسخة السابقة المحفوظة فحسابك؟ (غتعوّض البيانات الحالية)")) return;
+    stashLocal(); D=JSON.parse(p); D._t=Date.now(); try{localStorage.setItem(K,JSON.stringify(D));}catch(e){}
+    await pushNow(); render(); toast("تم استرجاع النسخة السابقة ✅");
+  }catch(e){ toast("تعذّر الاسترجاع"); }
+}
+function restoreLocal(){
+  const raw=localStorage.getItem("routine_pre_sync"); if(!raw) return toast("ما كاينش نسخة محفوظة على هاد الجهاز");
+  if(!confirm("نسترجعو بيانات هاد الجهاز اللي كانت قبل المزامنة؟")) return;
+  D=JSON.parse(raw); D._t=Date.now(); save(); render(); toast("تم الاسترجاع ✅");
 }
 function cloudPush(){
   if(!cu||!fdb) return;
@@ -245,7 +296,7 @@ function vAcc(){
   if(!FB.apiKey) return `<div class="card"><b>☁️ حسابي</b><p class="mut">حفظ البيانات بالإيميل غير مفعّل بعد.</p></div>`;
   if(!fdb) return `<div class="card"><b>☁️ حسابي</b><p class="mut">${cloudMsg||"جاري التحميل..."}</p></div>`;
   if(cu) return `<div class="card"><b>☁️ حسابي</b><p>${esc(cu.email)}<br><small class="mut">${cloudMsg}</small></p>
-    <button onclick="syncNow()">🔄 مزامنة الآن</button><button class="del" style="width:100%;margin-top:8px;padding:11px" onclick="logout()">تسجيل الخروج</button></div>`;
+    <button onclick="syncNow()">🔄 مزامنة الآن</button><button style="background:#242934;color:var(--tx);margin-top:8px" onclick="restorePrev()">↩️ استرجاع نسخة الحساب السابقة</button><button style="background:#242934;color:var(--tx);margin-top:8px" onclick="restoreLocal()">↩️ استرجاع بيانات الجهاز قبل المزامنة</button><button class="del" style="width:100%;margin-top:8px;padding:11px" onclick="logout()">تسجيل الخروج</button></div>`;
   return `<div class="card"><b>☁️ حسابي (باش ما تتمسح بياناتك)</b>
     <input id="ae" type="email" placeholder="الإيميل"><input id="ap" type="password" placeholder="كلمة السر (6 أحرف على الأقل)">
     <button onclick="doAuth(false)">تسجيل الدخول</button><button style="background:#242934;color:var(--tx)" onclick="doAuth(true)">إنشاء حساب جديد</button>
@@ -266,7 +317,7 @@ function vToday(){
   let h = vShift() + `<div style="margin:4px 2px 12px"><b style="font-size:20px">${g} ${esc(D.name)}</b><br><span class="mut">${pg.n} من ${pg.t} مهام اليوم</span></div>`;
   h += `<div class="rings">` + ring(pg.p,"#5b9dff","📊","الكل",flt==="all","all") +
     D.cats.map(c => { const l=D.tasks.filter(t=>t.cat===c.id&&sched(t,now)), n=l.filter(t=>isDone(t,k)).length;
-      return ring(l.length?Math.round(n/l.length*100):0, c.color, c.icon, esc(c.name), flt===c.id, c.id); }).join("") + ring(Math.min(100,Math.round(calToday()/goalK()*100)),"#f97316","🍽️","السعرات",false,"meals") + `</div>`;
+      return ring(l.length?Math.round(n/l.length*100):0, c.color, c.icon, esc(c.name), flt===c.id, c.id); }).join("") + ring(Math.min(100,Math.round(calToday()/goalK()*100)),"#f97316","🍽️","السعرات",false,"meals") + ring(wPct(),"#38bdf8","💧","الماء",false,"week") + ring(sPct(),"#22d3ee","👟","الخطوات",false,"week") + `</div>`;
 
   const list = D.tasks.filter(t => sched(t,now) && (flt==="all" || t.cat===flt))
     .sort((a,b) => (tTime(a,now)||"99:99").localeCompare(tTime(b,now)||"99:99"));
@@ -279,14 +330,16 @@ function vToday(){
   }).join("") : `<span class="mut">لا توجد مهام اليوم 🎉</span>`) + `</div>`;
   h += `<div class="card" style="text-align:center"><b>⏱️ مؤقت التركيز</b>
     <div id="pmt" style="font-size:44px;font-weight:bold;margin:6px 0">${fmt(pm.left)}</div>
-    <small>${pm.mode==="w"?"جلسة عمل":"استراحة"} • جلسات اليوم: ${(D.focus&&D.focus[k])||0}</small>
+    <small>${pm.mode==="w"?"جلسة عمل":"استراحة"} • جلسات اليوم: ${(D.focus&&D.focus[k])||0} • ${(D.fmin&&D.fmin[k])||0} من ${D.fg||120} دقيقة</small>
+    <div class="row"><input type="number" value="${pmW()}" onchange="setPm('w',this.value)" style="margin:0"><input type="number" value="${pmB()}" onchange="setPm('b',this.value)" style="margin:0"><input type="number" value="${D.fg||120}" onchange="setPm('g',this.value)" style="margin:0"></div>
+    <small class="mut">دقائق العمل • دقائق الراحة • هدف التركيز اليومي (دقيقة)</small>
     <div class="row"><button id="pmb" onclick="pmToggle()">${pm.run?"إيقاف مؤقت":"ابدأ"}</button>
     <button onclick="pmReset()" style="background:#242934;color:var(--tx)">إعادة</button></div></div>`;
   return h;
 }
 
 /* ===== المؤقت ===== */
-const pm = {left:1500, run:false, mode:"w", end:0, iv:null};
+const pm = {left:(D.pmw||25)*60, run:false, mode:"w", end:0, iv:null};
 const fmt = s => String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
 function pmDraw(){
   const e=document.getElementById("pmt"); if(e) e.textContent=fmt(pm.left);
@@ -302,13 +355,13 @@ function pmStep(){
   if(pm.left===0){
     clearInterval(pm.iv); pm.run=false;
     if(pm.mode==="w"){
-      const k=dk(new Date()); D.focus=D.focus||{}; D.focus[k]=(D.focus[k]||0)+1; save();
-      notify("✅ انتهت جلسة التركيز","خذ استراحة 5 دقائق"); pm.mode="b"; pm.left=300;
-    } else { notify("⏱️ انتهت الاستراحة","ابدأ جلسة جديدة"); pm.mode="w"; pm.left=1500; }
+      const k=dk(new Date()); D.focus=D.focus||{}; D.focus[k]=(D.focus[k]||0)+1; D.fmin=D.fmin||{}; D.fmin[k]=(D.fmin[k]||0)+pmW(); save();
+      notify("✅ انتهت جلسة التركيز","خذ استراحة "+pmB()+" دقائق"); pm.mode="b"; pm.left=pmB()*60;
+    } else { notify("⏱️ انتهت الاستراحة","ابدأ جلسة جديدة"); pm.mode="w"; pm.left=pmW()*60; }
     render();
   }
 }
-function pmReset(){ clearInterval(pm.iv); pm.run=false; pm.mode="w"; pm.left=1500; render(); }
+function pmReset(){ clearInterval(pm.iv); pm.run=false; pm.mode="w"; pm.left=pmW()*60; render(); }
 
 /* ===== التنبيهات ===== */
 function toast(m){
@@ -336,9 +389,11 @@ function tick(){
   const n=new Date(), hm=n.toTimeString().slice(0,5), k=dk(n);
   D.tasks.forEach(t=>{
     if(tTime(t,n)===hm && sched(t,n) && !isDone(t,k) && !fired.has(k+t.id)){
-      fired.add(k+t.id); notify("⏰ "+t.title, cat(t.cat).name);
+      fired.add(k+t.id); if(!t.al) notify("⏰ "+t.title, cat(t.cat).name);
     }
   });
+  alTick(n,hm,k);
+  PL.ticks.forEach(f=>{ try{ f(); }catch(e){} });
 }
 
 /* ===== مواقيت الصلاة ===== */
@@ -411,13 +466,36 @@ const HD=[
 ["نعمتان مغبون فيهما كثير من الناس: الصحة والفراغ","رواه البخاري"]
 ];
 let adhT = new Date().getHours()<14 ? "m" : "e", hOff = 0;
+const AX={
+ s:[[AD[0][0],null,1],
+    ["قراءة سور: الإخلاص، الفلق، الناس (ثلاث مرات، مع النفث في الكفين ومسح الجسد)",null,3],
+    ["بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",null,1],
+    ["اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ",null,3],
+    ["سُبْحَانَ اللَّهِ",null,33],["الْحَمْدُ لِلَّهِ",null,33],["اللَّهُ أَكْبَرُ",null,34]],
+ p:[["أَسْتَغْفِرُ اللَّهَ",null,3],
+    ["اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ",null,1],
+    ["لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ",null,1],
+    ["سُبْحَانَ اللَّهِ",null,33],["الْحَمْدُ لِلَّهِ",null,33],["اللَّهُ أَكْبَرُ",null,33],
+    ["لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ (تمام المئة)",null,1],
+    [AD[0][0],null,1]],
+ k:[["عند الاستيقاظ: الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",null,1],
+    ["دخول المسجد: بِسْمِ اللَّهِ وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللَّهِ، اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",null,1],
+    ["الخروج من المسجد: بِسْمِ اللَّهِ وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللَّهِ، اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",null,1],
+    ["قبل الأكل: بِسْمِ اللَّهِ",null,1],
+    ["بعد الأكل: الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ",null,1],
+    ["دخول الخلاء: بِسْمِ اللَّهِ، اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ",null,1],
+    ["الخروج من الخلاء: غُفْرَانَكَ",null,1]]
+};
+const ADS=t=>(t==="m"||t==="e")?AD:AX[t];
+const ADN=[["m","🌅 الصباح"],["e","🌇 المساء"],["s","😴 النوم"],["p","🕌 بعد الصلاة"],["k","📿 متفرقة"]];
 function vDin(){
-  const k=dk(new Date()), key=k+adhT;
-  D.adh=D.adh||{}; const c=D.adh[key]=D.adh[key]||AD.map(()=>0);
-  const done=AD.filter((a,i)=>c[i]>=a[2]).length, p=Math.round(done/AD.length*100);
-  let h=`<div class="chips"><span class="chip ${adhT==="m"?"on":""}" onclick="adhT='m';render()">🌅 أذكار الصباح</span><span class="chip ${adhT==="e"?"on":""}" onclick="adhT='e';render()">🌇 أذكار المساء</span></div>
-  <div class="card"><b>${done} / ${AD.length} مكتمل</b><div class="track" style="margin-top:8px"><i style="width:${p}%;background:#fbbf24"></i></div></div>`;
-  AD.forEach((a,i)=>{
+  const L=ADS(adhT), k=dk(new Date()), key=k+adhT;
+  D.adh=D.adh||{}; const c=D.adh[key]=D.adh[key]||L.map(()=>0);
+  const done=L.filter((a,i)=>c[i]>=a[2]).length, p=Math.round(done/L.length*100);
+  let h=`<div class="chips">${ADN.map(([t,n])=>`<span class="chip ${adhT===t?"on":""}" onclick="adhT='${t}';render()">${n}</span>`).join("")}</div>
+  <div class="card"><div class="row" style="margin:0"><b style="flex:1">${done} / ${L.length} مكتمل</b><button class="del" onclick="adhReset()">🔄 إعادة</button></div>
+  <div class="track" style="margin-top:8px"><i style="width:${p}%;background:#fbbf24"></i></div></div>`;
+  L.forEach((a,i)=>{
     const txt=(adhT==="e"&&a[1])?a[1]:a[0], ok=c[i]>=a[2];
     h+=`<div class="card" style="display:flex;gap:12px;align-items:center;${ok?"opacity:.5":""}">
       <div style="flex:1;line-height:2;font-size:17px">${txt}</div>
@@ -430,20 +508,20 @@ function vDin(){
   return h;
 }
 function adhInc(i){
-  const k=dk(new Date()), c=D.adh[k+adhT];
-  if(c[i]<AD[i][2]) c[i]++;
-  if(AD.every((a,j)=>c[j]>=a[2])){
-    const id=adhT==="m"?"adh_m":"adh_e", a=D.done[k]=D.done[k]||[];
-    if(!a.includes(id)) a.push(id);
+  const L=ADS(adhT), k=dk(new Date()), c=D.adh[k+adhT];
+  if(c[i]<L[i][2]) c[i]++;
+  if(L.every((a,j)=>c[j]>=a[2])){
     toast("ما شاء الله، أكملت الأذكار ✅");
+    if(adhT==="m"||adhT==="e"){ const id=adhT==="m"?"adh_m":"adh_e", a=D.done[k]=D.done[k]||[]; if(!a.includes(id)) a.push(id); }
   }
   save(); render();
 }
+function adhReset(){ D.adh[dk(new Date())+adhT]=ADS(adhT).map(()=>0); save(); render(); }
 
 /* ===== الوجبات والسعرات ===== */
 const MT=[["b","🍳","الفطور"],["l","🍛","الغداء"],["d","🥗","العشاء"]];
 const mealsToday=()=>{D.meals=D.meals||{};const k=dk(new Date());return D.meals[k]=D.meals[k]||{b:[],l:[],d:[]}};
-const calToday=()=>{const m=(D.meals||{})[dk(new Date())];return m?Object.values(m).flat().reduce((a,x)=>a+x.k,0):0};
+const calToday=()=>{const m=(D.meals||{})[dk(new Date())];return (m?Object.values(m).flat().reduce((a,x)=>a+x.k,0):0)+Math.round(suppT().k);};
 let cur=null, stream=null, scanOn=false;
 
 const FOODS=[["عدس مطبوخ",116,9,20,0.4,7.9,2,3.3,19],["حمص مطبوخ",164,8.9,27,2.6,7.6,7,2.9,49],["فول مطبوخ",110,7.6,19.7,0.4,5.4,5,1.5,36],["بيض مسلوق",155,13,1.1,11,0,124,1.2,50],["صدر دجاج مطبوخ",165,31,0,3.6,0,74,1,15],["لحم بقر مطبوخ",250,26,0,15,0,72,2.6,18],["كبد بقر مطبوخ",175,27,4,5,0,79,6.5,6],["سردين معلب",208,25,0,11,0,307,2.9,382],["تونة معلبة",116,26,0,0.8,0,247,1.4,11],["سبانخ مطبوخ",23,3,3.8,0.3,2.4,70,3.6,136],["طماطم",18,0.9,3.9,0.2,1.2,5,0.3,10],["بطاطس مسلوقة",87,1.9,20,0.1,1.8,4,0.3,5],["خبز أبيض",265,9,49,3.2,2.7,491,3.6,144],["أرز مطبوخ",130,2.7,28,0.3,0.4,1,0.2,10],["تمر",277,1.8,75,0.2,6.7,1,0.9,64],["حليب كامل",61,3.2,4.8,3.3,0,43,0,113],["لبن / زبادي",61,3.5,4.7,3.3,0,46,0.1,121],["تفاح",52,0.3,14,0.2,2.4,1,0.1,6],["موز",89,1.1,23,0.3,2.6,1,0.3,5],["زيت زيتون",884,0,0,100,0,2,0.6,1]];
@@ -482,6 +560,7 @@ function vProf(){
 function totals(){
   const t={p:0,c:0,f:0,fib:0,na:0,fe:0,ca:0}, m=(D.meals||{})[dk(new Date())]||{};
   Object.values(m).flat().forEach(x=>{ for(const k in t) t[k]+=(x.nu&&x.nu[k])||0; });
+  const sp=suppT(); t.p+=sp.p; t.c+=sp.c; t.f+=sp.f;
   return t;
 }
 function meter(k,ic,nm,u,ty,t,T){
@@ -593,7 +672,7 @@ function wChart(){
 }
 function vTrack(){
   const W=D.wt||{}, e=Object.entries(W).sort(), last=e.length?e[e.length-1][1]:"", first=e.length?e[0][1]:"";
-  let h=`<div class="card"><b>⚖️ وزني</b>
+  let h=vSteps()+vWater()+`<div class="card"><b>⚖️ وزني</b>
     <div class="row"><input id="wv" type="number" step="0.1" placeholder="وزنك اليوم (كغ)" value="${W[dk(new Date())]||""}" style="margin:0"><button style="width:90px;margin:0" onclick="saveW()">حفظ</button></div>
     <input type="number" step="0.1" placeholder="هدف الوزن (كغ)" value="${D.tw||""}" onchange="setTW(this.value)">`;
   if(last){
@@ -641,8 +720,51 @@ const XC=["🍽️ أكل","🚌 مواصلات","💡 فواتير","🎮 تر�
 const sumA=l=>l.reduce((a,x)=>a+x.a,0);
 const $v=id=>document.getElementById(id).value;
 
+const MON=["يناير","فبراير","مارس","أبريل","ماي","يونيو","يوليوز","غشت","شتنبر","أكتوبر","نونبر","دجنبر"];
+const DF=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+let calM=new Date(), calSel=dk(new Date()), calV="m";
 function vMoney(){
-  return `<div class="chips"><span class="chip ${moneyT==="g"?"on":""}" onclick="moneyT='g';render()">🎯 أهدافي</span><span class="chip ${moneyT==="x"?"on":""}" onclick="moneyT='x';render()">💸 مصاريفي</span></div>`+(moneyT==="g"?vGoals():vBudget());
+  return `<div class="chips"><span class="chip ${moneyT==="g"?"on":""}" onclick="moneyT='g';render()">🎯 أهدافي</span><span class="chip ${moneyT==="a"?"on":""}" onclick="moneyT='a';render()">📆 الأجندة</span><span class="chip ${moneyT==="x"?"on":""}" onclick="moneyT='x';render()">💸 مصاريفي</span></div>`+(moneyT==="g"?vGoals():moneyT==="a"?vAgenda():vBudget());
+}
+function calNav(n){
+  calM=calV==="m"?new Date(calM.getFullYear(),calM.getMonth()+n,1):new Date(calM.getFullYear()+n,calM.getMonth(),1);
+  const t=new Date(); calSel=(calM.getFullYear()===t.getFullYear()&&calM.getMonth()===t.getMonth())?dk(t):dk(calM);
+  render();
+}
+function vAgenda(){
+  const y=calM.getFullYear(), mo=calM.getMonth(), now=new Date();
+  const nav=t=>`<div class="row" style="justify-content:space-between;margin:0 0 10px"><button class="del" style="padding:10px 18px" onclick="calNav(-1)">→</button><b style="font-size:19px">${t}</b><button class="del" style="padding:10px 18px" onclick="calNav(1)">←</button></div>`;
+  let h=`<div class="chips"><span class="chip ${calV==="m"?"on":""}" onclick="calV='m';render()">📅 شهر</span><span class="chip ${calV==="y"?"on":""}" onclick="calV='y';render()">🗓️ سنة</span></div>`;
+  if(calV==="y"){
+    const T=Array(12).fill(0); MN().tx.filter(x=>x.t==="x"&&x.d.startsWith(y+"-")).forEach(x=>T[+x.d.slice(5,7)-1]+=x.a);
+    const yt=T.reduce((a,b)=>a+b,0), mx=Math.max(1,...T);
+    return h+`<div class="card">${nav(String(y))}<b>إجمالي ${y}: ${fm(yt)}</b><br><small class="mut">المتوسط الشهري: ${fm(yt/12)}</small></div><div class="card">`+
+      T.map((v,i)=>`<div class="row" onclick="calM=new Date(${y},${i},1);calV='m';calSel=dk(calM);render()"><span style="width:62px">${MON[i]}</span><div class="track"><i style="width:${Math.round(v/mx*100)}%;background:#f97316"></i></div><small style="width:70px;text-align:left">${v?nf(v):"–"}</small></div>`).join("")+`</div>`;
+  }
+  const pre=y+"-"+String(mo+1).padStart(2,"0"), S={};
+  MN().tx.filter(x=>x.t==="x"&&x.d.startsWith(pre)).forEach(x=>S[x.d]=(S[x.d]||0)+x.a);
+  const dim=new Date(y,mo+1,0).getDate(), first=new Date(y,mo,1).getDay(), td=dk(now), vals=Object.values(S);
+  const tot=vals.reduce((a,b)=>a+b,0), mx=Math.max(0,...vals), bud=MN().budget, ref=bud?bud/dim:(mx||1);
+  const el=(y===now.getFullYear()&&mo===now.getMonth())?now.getDate():dim;
+  h+=`<div class="card">${nav(MON[mo]+" "+y)}<b>إجمالي المصروف: ${fm(tot)}</b><br><small class="mut">المعدل اليومي: ${fm(tot/el)} • أعلى يوم: ${fm(mx)}</small></div>
+  <div class="card"><div class="cal">${DN.map(n=>`<div class="cw">${n}</div>`).join("")}${"<div></div>".repeat(first)}`;
+  for(let d=1;d<=dim;d++){
+    const key=pre+"-"+String(d).padStart(2,"0"), a=S[key]||0, r=a/ref;
+    const bg=a?(r<.5?"rgba(52,211,153,.28)":r<1?"rgba(251,191,36,.32)":"rgba(239,68,68,.4)"):"";
+    h+=`<div class="cd ${key===calSel?"sel":""} ${key===td?"td":""}" ${bg?`style="background:${bg}"`:""} onclick="calSel='${key}';render()"><small>${d}</small><b>${a?Math.round(a):""}</b></div>`;
+  }
+  h+=`</div><small class="mut" style="display:block;margin-top:10px">🟩 قليل • 🟨 متوسط • 🟥 مرتفع (${bud?"حسب ميزانيتك اليومية":"مقارنة بأعلى يوم"})</small></div>`;
+  const sd=new Date(calSel+"T00:00:00"), l=MN().tx.filter(x=>x.d===calSel), dt=sumA(l.filter(x=>x.t==="x"));
+  h+=`<div class="card"><b>${DF[sd.getDay()]} ${sd.getDate()} ${MON[sd.getMonth()]} ${sd.getFullYear()}</b>
+    <div style="font-size:30px;font-weight:bold;color:#f97316;margin:8px 0">${fm(dt)}</div>`+
+    l.map(x=>`<div class="task"><div class="t">${x.t==="i"?"💵":"💸"} ${x.c}${x.n?" • "+esc(x.n):""}</div><b style="color:${x.t==="i"?"#34d399":"#f97316"}">${x.t==="i"?"+":"-"}${fm(x.a)}</b><button class="del" onclick="delTx('${x.id}')">🗑</button></div>`).join("")+
+    `<input id="aa" type="number" placeholder="شحال صرفتي فهاد النهار؟ (درهم)"><select id="ac">${XC.map(c=>`<option>${c}</option>`).join("")}</select><input id="an" placeholder="ملاحظة (اختياري)">
+    <div class="row"><button onclick="addTx2('x')">💸 مصروف</button><button style="background:#34d399" onclick="addTx2('i')">💵 دخل</button></div></div>`;
+  return h;
+}
+function addTx2(t){
+  const a=+$v("aa"); if(!a||a<=0) return toast("كتب المبلغ");
+  MN().tx.push({id:"x"+Date.now(),d:calSel,t,c:$v("ac"),a,n:$v("an").trim()}); save(); render();
 }
 function vGoals(){
   const G=D.goals=D.goals||[]; let h="";
@@ -719,6 +841,495 @@ function addTx(){
 }
 function delTx(id){ MN().tx=MN().tx.filter(x=>x.id!==id); save(); render(); }
 
+/* ===== الخطوات والماء ===== */
+const waterT=()=>{const w=prof().w; return w?Math.round(w*35/50)*50:2000;};
+const wPct=()=>Math.min(100,Math.round(((D.water||{})[dk(new Date())]||0)/waterT()*100));
+const sPct=()=>Math.min(100,Math.round(((D.steps||{})[dk(new Date())]||0)/(D.sg||10000)*100));
+const nf=x=>Math.round(x).toLocaleString("en-US");
+function vSteps(){
+  const S=D.steps||{}, g=D.sg||10000, t=S[dk(new Date())]||0, p=Math.min(100,Math.round(t/g*100));
+  let h=`<div class="card"><b>👟 خطواتي اليوم</b>
+    <div style="font-size:34px;font-weight:bold;margin:8px 0;color:#22d3ee">${nf(t)} <small>/ ${nf(g)}</small></div>
+    <div class="track"><i style="width:${p}%;background:#22d3ee"></i></div>
+    <small>${p>=100?"🎉 حققتي هدفك!":"باقي "+nf(g-t)+" خطوة ("+p+"%)"}</small>
+    <div class="row"><input id="stv" type="number" placeholder="عدد خطواتك (من Samsung Health)" value="${t||""}" style="margin:0"><button style="width:90px;margin:0" onclick="saveSt()">حفظ</button></div>
+    <input type="number" placeholder="هدفك اليومي (خطوة)" value="${g}" onchange="D.sg=+this.value||10000;save();render()"><div class="bars">`;
+  for(let i=6;i>=0;i--){
+    const d=ago(i), v=S[dk(d)]||0;
+    h+=`<div class="bar"><small>${v?Math.round(v/100)/10+"k":"–"}</small><div style="height:${Math.min(v/g,1)*80}%;background:${v>=g?"#34d399":"#22d3ee"}"></div><small>${DN[d.getDay()]}</small></div>`;
+  }
+  return h+`</div></div>`;
+}
+function saveSt(){
+  const v=Math.round(+document.getElementById("stv").value);
+  if(isNaN(v)||v<0||v>200000) return toast("كتب عدد خطوات صحيح");
+  D.steps=D.steps||{}; D.steps[dk(new Date())]=v; save(); render(); toast("تم حفظ خطواتك ✅");
+}
+function vWater(){
+  const t=(D.water||{})[dk(new Date())]||0, g=waterT(), p=Math.min(100,Math.round(t/g*100));
+  return `<div class="card"><b>💧 الماء</b>
+    <div style="font-size:34px;font-weight:bold;margin:8px 0;color:#38bdf8">${t} <small>/ ${g} مل</small></div>
+    <div class="track"><i style="width:${p}%;background:#38bdf8"></i></div>
+    <small>${p>=100?"🎉 كملتي هدف الماء":"باقي "+(g-t)+" مل (حوالي "+Math.ceil((g-t)/250)+" كاس)"} • ${Math.floor(t/250)} كاس</small>
+    <div class="chips"><span class="chip" onclick="addW(250)">+ كاس 250مل</span><span class="chip" onclick="addW(500)">+ قنينة 500مل</span><span class="chip" onclick="addW(-250)">− تراجع</span></div>
+    <small class="mut">الهدف = 35 مل لكل كيلو من وزنك (تقدير عام، ويتغير حسب الجو والنشاط).</small></div>`;
+}
+function addW(a){ D.water=D.water||{}; const k=dk(new Date()); D.water[k]=Math.max(0,(D.water[k]||0)+a); save(); render(); }
+
+/* ===== المنبهات (شاشة كاملة + صوت + اهتزاز) ===== */
+const rays=(cx,cy,r1,r2,n,a0,sp)=>Array.from({length:n},(_,i)=>{const a=a0+i*sp/(n-1);return `<line x1="${cx+r1*Math.cos(a)}" y1="${cy+r1*Math.sin(a)}" x2="${cx+r2*Math.cos(a)}" y2="${cy+r2*Math.sin(a)}" stroke="#fde68a" stroke-width="3" stroke-linecap="round"/>`}).join("");
+const ART={
+  m:`<svg viewBox="0 0 100 100">${rays(50,62,28,40,7,Math.PI,Math.PI)}<circle cx="50" cy="62" r="22" fill="#fbbf24"/><rect x="0" y="62" width="100" height="38" fill="rgba(0,0,0,.4)"/></svg>`,
+  e:`<svg viewBox="0 0 100 100"><circle cx="50" cy="62" r="26" fill="#fb7185"/><rect x="0" y="62" width="100" height="38" fill="rgba(0,0,0,.4)"/><rect x="14" y="68" width="72" height="3" fill="#fda4af"/><rect x="24" y="76" width="52" height="3" fill="#fda4af"/></svg>`,
+  n:`<svg viewBox="0 0 100 100"><mask id="mm"><rect width="100" height="100" fill="#fff"/><circle cx="64" cy="42" r="26" fill="#000"/></mask><circle cx="48" cy="52" r="30" fill="#c7d2fe" mask="url(#mm)"/><circle cx="78" cy="22" r="2.5" fill="#fff"/><circle cx="22" cy="24" r="2" fill="#fff"/><circle cx="82" cy="70" r="2" fill="#fff"/><circle cx="14" cy="64" r="1.6" fill="#fff"/></svg>`,
+  o:`<svg viewBox="0 0 100 100"><text x="50" y="72" font-size="64" text-anchor="middle">🏖️</text></svg>`
+};
+let curAl=null, ac=null, sndT=null, vibT=null, wl=null, snz=[];
+const imgs=()=>{try{return JSON.parse(localStorage.getItem("routine_img"))||{};}catch(e){return {};}};
+function startSound(){
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)(); if(ac.resume) ac.resume(); stopSound();
+    const beep=()=>{const o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.value=880;g.gain.value=.25;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.18);};
+    sndT=setInterval(()=>{beep();setTimeout(beep,260);},1100); beep();
+  }catch(e){}
+}
+function stopSound(){ clearInterval(sndT); sndT=null; }
+function ringShow(a){
+  curAl=a; const n=new Date(), hm=n.toTimeString().slice(0,5), s=shiftOf(n)||"m", S=SH[s], im=imgs()[s];
+  let o=document.getElementById("alarm");
+  if(!o){ o=document.createElement("div"); o.id="alarm"; document.body.appendChild(o); }
+  o.className="alarm";
+  o.style.background=im?`linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.6)),url(${im}) center/cover`:`linear-gradient(160deg,${S.bg},${S.c}66)`;
+  o.innerHTML=`${im?"":`<div class="art">${ART[s]}</div>`}<div class="atime">${hm}</div><div class="albl">${esc(a.label||"منبه")}</div><div class="ash">${S.i} شيفت ${S.n} • ${S.t}</div>
+    <button class="abtn" onclick="alarmDone()">${a.fm?"إيقاف وبدء التركيز ("+a.fm+" د)":"إيقاف"}</button>${a.sn?`<button class="abtn sn" onclick="alarmSnooze()">غفوة ${a.sn} دقائق</button>`:""}`;
+  startSound(); clearInterval(vibT); vibT=setInterval(()=>{try{navigator.vibrate&&navigator.vibrate([500,300,500]);}catch(e){}},1500);
+  try{ if(navigator.wakeLock) navigator.wakeLock.request("screen").then(l=>wl=l).catch(()=>{}); }catch(e){}
+  notify("⏰ "+(a.label||"منبه"),S.n);
+}
+function alarmStop(){
+  stopSound(); clearInterval(vibT); try{ if(wl) wl.release(); }catch(e){} wl=null;
+  const o=document.getElementById("alarm"); if(o){ o.className=""; o.innerHTML=""; o.style.background=""; }
+}
+function alarmSnooze(){ if(curAl&&curAl.sn) snz.push({t:Date.now()+curAl.sn*60000,a:curAl}); alarmStop(); toast("غفوة "+(curAl?curAl.sn:5)+" دقائق 💤"); }
+function alsFor(d){
+  const s=shiftOf(d), L=[];
+  (D.al||[]).forEach(a=>{ if(a.on&&(!a.days.length||a.days.includes(d.getDay()))&&(!a.sh.length||a.sh.includes(s))) L.push({time:a.time,label:a.label,sn:a.sn,id:a.id,fm:a.fm}); });
+  D.tasks.forEach(t=>{ const tm=tTime(t,d); if(t.al&&tm&&sched(t,d)) L.push({time:tm,label:t.title,sn:5,id:t.id,tid:t.id}); });
+  return L.sort((a,b)=>a.time.localeCompare(b.time));
+}
+function nxA(){
+  const n=new Date(), hm=n.toTimeString().slice(0,5), x=alsFor(n).find(a=>a.time>hm);
+  return x?`<br><small style="color:var(--ac)">⏰ أقرب منبه: ${x.time} — ${esc(x.label)}</small>`:"";
+}
+function alTick(n,hm,k){
+  alsFor(n).forEach(x=>{
+    if(x.time!==hm||fired.has("al"+k+x.id+x.time)) return;
+    if(x.tid){ const t=D.tasks.find(y=>y.id===x.tid); if(t&&isDone(t,k)) return; }
+    fired.add("al"+k+x.id+x.time); ringShow(x);
+  });
+  snz=snz.filter(z=>{ if(z.t<=Date.now()){ ringShow(z.a); return false; } return true; });
+}
+function alAdd(){
+  const t=$v("alt"); if(!t) return toast("اختر وقت المنبه");
+  const sh=[...document.querySelectorAll(".chip.on[data-k]")].map(e=>e.dataset.k), days=[...document.querySelectorAll(".chip.on[data-d]")].map(e=>+e.dataset.d);
+  (D.al=D.al||[]).push({id:"a"+Date.now(),label:$v("all").trim()||"منبه",time:t,sh,days,on:true,sn:+$v("als"),fm:+$v("alf")||0});
+  save(); render(); toast("تمت إضافة المنبه ⏰");
+}
+function alTog(id){ const a=D.al.find(x=>x.id===id); a.on=!a.on; save(); render(); }
+function alDel(id){ if(confirm("حذف المنبه؟")){ D.al=D.al.filter(x=>x.id!==id); save(); render(); } }
+function taskAl(id){ const t=D.tasks.find(x=>x.id===id); t.al=t.al?0:1; save(); render(); toast(t.al?"تم تفعيل منبه لهذه المهمة 🔔":"تم إيقاف المنبه"); }
+function setImg(k,inp){
+  const f=inp.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ const im=new Image(); im.onload=()=>{
+    const w=Math.min(540,im.width), h=Math.round(im.height*w/im.width), c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(im,0,0,w,h);
+    const I=imgs(); I[k]=c.toDataURL("image/jpeg",.6);
+    try{ localStorage.setItem("routine_img",JSON.stringify(I)); toast("تم حفظ الصورة ✅"); }catch(e){ toast("الصورة كبيرة، جرّب صورة أخرى"); } render();
+  }; im.src=r.result; };
+  r.readAsDataURL(f);
+}
+function delImg(k){ const I=imgs(); delete I[k]; try{ localStorage.setItem("routine_img",JSON.stringify(I)); }catch(e){} render(); }
+function vAlarm(){
+  const A=D.al||[], I=imgs();
+  return `<div class="card"><b>⏰ المنبهات</b><br><small class="mut">شاشة كاملة بصوت واهتزاز. اربطه بشيفت معين (مثلاً الليل 21:00 باش تخرج للخدمة) أو بأيام معينة. وتقدر تفعّل منبه لأي مهمة بزر 🔔 ف قائمة المهام.</small>`+
+  A.map(a=>`<div class="task"><div class="t"><b style="font-size:22px">${a.time}</b> ${esc(a.label)}<br><small>${a.sh.length?a.sh.map(k=>SH[k].i).join(" "):"كل الشيفتات"} • ${a.days.length?a.days.map(i=>DN[i]).join("، "):"يومياً"} • ${a.sn?"غفوة "+a.sn+" د":"بدون غفوة"}${a.fm?" • 🎯 "+a.fm+" د تركيز":""}</small></div>
+    <span class="chip ${a.on?"on":""}" onclick="alTog('${a.id}')">${a.on?"مفعّل":"موقوف"}</span><button class="del" onclick="alDel('${a.id}')">🗑</button></div>`).join("")+
+  `<b style="display:block;margin-top:14px">➕ منبه جديد</b>
+    <input id="alt" type="time"><input id="all" placeholder="الاسم (مثال: خرج للخدمة)">
+    <small class="mut">الشيفتات (إن لم تختر شيئاً = كلها):</small>
+    <div class="chips">${["m","e","n","o"].map(k=>`<span class="chip" data-k="${k}" onclick="this.classList.toggle('on')">${SH[k].i} ${SH[k].n}</span>`).join("")}</div>
+    <small class="mut">الأيام (إن لم تختر شيئاً = يومياً):</small>
+    <div class="chips">${DN.map((n,i)=>`<span class="chip" data-d="${i}" onclick="this.classList.toggle('on')">${n}</span>`).join("")}</div>
+    <select id="als"><option value="5">غفوة 5 دقائق</option><option value="10">غفوة 10 دقائق</option><option value="0">بدون غفوة</option></select>
+    <select id="alf"><option value="0">بدون مؤقت تركيز</option><option value="25">ابدأ مؤقت تركيز 25 د بعد الإيقاف</option><option value="50">ابدأ مؤقت تركيز 50 د</option><option value="90">ابدأ مؤقت تركيز 90 د (تركيز عميق)</option><option value="120">ابدأ مؤقت تركيز 120 د</option></select>
+    <button onclick="alAdd()">إضافة المنبه</button><button style="background:#242934;color:var(--tx)" onclick="ringShow({label:'تجربة المنبه',sn:5})">🔔 جرّب شكل المنبه</button>
+    <b style="display:block;margin-top:14px">🖼️ صورة المنبه لكل شيفت (اختياري)</b>`+
+  ["m","e","n","o"].map(k=>`<div class="row">${I[k]?`<img class="thumb" src="${I[k]}">`:`<span style="font-size:28px;width:44px;text-align:center">${SH[k].i}</span>`}<span style="flex:1">${SH[k].n}</span>
+    <input id="im_${k}" type="file" accept="image/*" style="display:none" onchange="setImg('${k}',this)"><button class="del" style="padding:10px 12px" onclick="document.getElementById('im_${k}').click()">اختر صورة</button>${I[k]?`<button class="del" onclick="delImg('${k}')">🗑</button>`:""}</div>`).join("")+
+  `<small class="mut" style="display:block;margin-top:8px">الصور تُحفظ على هذا الجهاز فقط (لا تُرفع للحساب).</small></div>`;
+}
+
+/* ===== التركيز: ضبط ===== */
+const pmW=()=>D.pmw||25, pmB=()=>D.pmb||5;
+function setPm(k,v){
+  D[k==="w"?"pmw":k==="b"?"pmb":"fg"]=Math.max(1,Math.min(600,+v||(k==="w"?25:k==="b"?5:120)));
+  if(!pm.run){ pm.mode="w"; pm.left=pmW()*60; } save(); render();
+}
+function pmStart(m){ clearInterval(pm.iv); pm.mode="w"; pm.left=m*60; pm.run=true; pm.end=Date.now()+pm.left*1000; pm.iv=setInterval(pmStep,500); render(); }
+function alarmDone(){ const f=curAl&&curAl.fm; alarmStop(); if(f){ tab="today"; pmStart(f); } }
+
+/* ===== الجيم ===== */
+const MU={chest:"الصدر",back:"الظهر",legs:"الأرجل",shoulders:"الأكتاف",arms:"الذراعان",core:"البطن"};
+const EX=[["Bench Press","ضغط البنش","chest"],["Incline Dumbbell Press","ضغط دمبل مائل","chest"],["Cable Fly","فلاي كابل","chest"],["Push-Up","ضغط أرضي","chest"],["Dips","متوازي","chest"],
+["Deadlift","رفعة ميتة","back"],["Barbell Row","تجديف بار","back"],["Lat Pulldown","سحب علوي","back"],["Pull-Up","عقلة","back"],["Seated Cable Row","تجديف كابل جالس","back"],
+["Back Squat","سكوات","legs"],["Leg Press","ليغ برس","legs"],["Romanian Deadlift","رفعة رومانية","legs"],["Walking Lunge","اندفاع","legs"],["Leg Curl","ثني الأرجل","legs"],["Leg Extension","فرد الأرجل","legs"],["Calf Raise","سمانة","legs"],
+["Overhead Press","ضغط كتف","shoulders"],["Lateral Raise","رفرفة جانبية","shoulders"],["Face Pull","فيس بول","shoulders"],["Rear Delt Fly","رفرفة خلفية","shoulders"],
+["Barbell Curl","بايسبس بار","arms"],["Hammer Curl","هامر","arms"],["Triceps Pushdown","ترايسبس كابل","arms"],["Overhead Triceps Extension","ترايسبس فوق الرأس","arms"],
+["Ab Wheel Rollout","عجلة البطن","core"],["Hanging Leg Raise","رفع الأرجل معلق","core"],["Cable Crunch","كرنش كابل","core"]];
+const PRE=[
+ {id:"whey",n:"واي بروتين (Whey Concentrate)",u:"سكوب",g:30,p:24,c:3,f:1.5,k:120},
+ {id:"iso",n:"واي أيزوليت (Whey Isolate)",u:"سكوب",g:30,p:27,c:1,f:.5,k:115},
+ {id:"cas",n:"كازين (Casein)",u:"سكوب",g:33,p:24,c:4,f:1,k:120},
+ {id:"gain",n:"ماس غينر (Mass Gainer)",u:"سكوب",g:100,p:20,c:70,f:3,k:380},
+ {id:"cre",n:"كرياتين مونوهيدرات (Creatine Monohydrate)",u:"سكوب",g:5,p:0,c:0,f:0,k:0,x:"5 غ كرياتين نقي"},
+ {id:"pre",n:"بري ورك أوت (Pre-Workout)",u:"سكوب",g:10,p:0,c:3,f:0,k:10,caf:200,x:"≈200 ملغ كافيين (يختلف كثيراً حسب المنتج)"},
+ {id:"cit",n:"سيترولين مالات (Citrulline Malate)",u:"سكوب",g:6,p:0,c:0,f:0,k:0,x:"6 غ"},
+ {id:"om3",n:"أوميغا 3 (Fish Oil)",u:"كبسولة",g:1,p:0,c:0,f:1,k:9,x:"≈300 ملغ EPA+DHA"},
+ {id:"vd",n:"فيتامين D3",u:"كبسولة",g:0,p:0,c:0,f:0,k:0,x:"1000 وحدة دولية (25 مكغ)"},
+ {id:"mg",n:"مغنيزيوم (Magnesium)",u:"كبسولة",g:0,p:0,c:0,f:0,k:0,x:"≈200 ملغ مغنيزيوم عنصري"}
+];
+const sups=()=>D.sup=D.sup||[PRE[0],PRE[4]].map(x=>({...x}));
+const suppT=()=>{const t={k:0,p:0,c:0,f:0},c=(D.gs||{})[dk(new Date())]||{};(D.sup||[]).forEach(s=>{const n=c[s.id]||0;t.k+=n*s.k;t.p+=n*s.p;t.c+=n*s.c;t.f+=n*s.f;});return t;};
+const e1=(w,r)=>r<=1?w:w*(1+r/30);
+let gymT="l", gymEx="Bench Press", gymW="", gymR="", gymRpe="", gymP=0, rt={left:0,iv:null};
+function vGym(){
+  const T=[["l","🏋️ تمريني"],["s","💊 المكملات"],["g","📋 البرنامج"],["p","📈 تقدمي"],["d","📖 القاموس"]];
+  return `<div class="chips">${T.map(([k,n])=>`<span class="chip ${gymT===k?"on":""}" onclick="gymT='${k}';render()">${n}</span>`).join("")}</div>`+
+    (gymT==="l"?vGymLog():gymT==="s"?vGymSupp():gymT==="g"?vGymProg():gymT==="p"?vGymStat():vGlossary());
+}
+function lastHint(){
+  const L=(D.gl||[]).filter(x=>x.ex===gymEx&&x.d<dk(new Date())); if(!L.length) return `<small class="mut">أول مرة لهذا التمرين: ابدأ بوزن تقدر تؤديه بـ 2–3 تكرارات احتياطية (RIR).</small>`;
+  const d=L[L.length-1].d, l=L.filter(x=>x.d===d), b=l.reduce((a,x)=>e1(x.w,x.r)>e1(a.w,a.r)?x:a), up=(EX.find(e=>e[0]===gymEx)||[])[2]==="legs"?5:2.5;
+  return `<small style="color:var(--ac)">آخر مرة (${d}): ${l.map(x=>x.w+"×"+x.r).join("، ")}<br>💡 ${b.r>=12?"وصلت لـ 12: زد الوزن "+up+" كغ وارجع لـ 8 تكرارات":"حافظ على "+b.w+" كغ وحاول "+(b.r+1)+" تكرار (Double Progression)"}</small>`;
+}
+function vGymLog(){
+  const k=dk(new Date()), ts=(D.gl||[]).filter(x=>x.d===k), by={};
+  ts.forEach(x=>(by[x.ex]=by[x.ex]||[]).push(x));
+  let h=`<div class="card"><b>🏋️ جلسة اليوم</b> <small class="mut">${ts.length} مجموعة • الحجم ${nf(ts.reduce((a,x)=>a+x.w*x.r,0))} كغ</small>
+    <select onchange="gymEx=this.value;render()">${EX.map(e=>`<option value="${e[0]}" ${e[0]===gymEx?"selected":""}>${e[0]} • ${e[1]}</option>`).join("")}</select>${lastHint()}
+    <div class="row"><input type="number" step="0.5" placeholder="الوزن (كغ)" value="${gymW}" oninput="gymW=this.value" style="margin:0"><input type="number" placeholder="التكرارات" value="${gymR}" oninput="gymR=this.value" style="margin:0"><input type="number" step="0.5" placeholder="RPE" value="${gymRpe}" oninput="gymRpe=this.value" style="margin:0;width:78px"></div>
+    <button onclick="addSet()">➕ إضافة مجموعة (Set)</button>
+    <div class="chips">${[60,90,120,180].map(s=>`<span class="chip" onclick="restStart(${s})">⏱ راحة ${s}ث</span>`).join("")}</div>
+    <div id="rtd" style="text-align:center;font-size:30px;font-weight:bold">${rt.left?fmt(rt.left):""}</div></div>`;
+  Object.entries(by).forEach(([n,l])=>{
+    h+=`<div class="card"><b>${n}</b> <small class="mut">e1RM ≈ ${r1(Math.max(...l.map(x=>e1(x.w,x.r))))} كغ</small>`+
+      l.map((x,i)=>`<div class="task"><div class="t">Set ${i+1}: <b>${x.w} × ${x.r}</b>${x.rpe?` <small>RPE ${x.rpe}</small>`:""}</div><button class="del" onclick="delSet('${x.id}')">🗑</button></div>`).join("")+`</div>`;
+  });
+  return h;
+}
+function addSet(){
+  const w=+gymW, r=+gymR; if(isNaN(w)||w<0||!r||r<1||r>100) return toast("كتب الوزن والتكرارات");
+  (D.gl=D.gl||[]).push({id:"s"+Date.now(),d:dk(new Date()),ex:gymEx,w,r,rpe:+gymRpe||0}); save(); render();
+}
+function delSet(id){ D.gl=D.gl.filter(x=>x.id!==id); save(); render(); }
+function restStart(sec){
+  clearInterval(rt.iv); rt.left=sec;
+  rt.iv=setInterval(()=>{ rt.left--; const e=document.getElementById("rtd"); if(e) e.textContent=rt.left>0?fmt(rt.left):"";
+    if(rt.left<=0){ clearInterval(rt.iv); notify("⏱ انتهت الراحة","ابدأ المجموعة التالية"); } },1000);
+  const e=document.getElementById("rtd"); if(e) e.textContent=fmt(sec);
+}
+/* --- المكملات --- */
+function supDose(s,w){
+  const m={whey:"عادةً 1–2 سكوب يومياً لسدّ نقص البروتين، وبعد التمرين أو في أي وقت. لا حاجة لتجاوز حاجتك الكلية.",
+   iso:"مثل الواي: 1–2 سكوب لسدّ نقص البروتين، وهو أقل لاكتوزاً.",
+   cas:"بطيء الهضم: مناسب قبل النوم أو بين الوجبات الطويلة.",
+   gain:"للنحفاء الذين يصعب عليهم بلوغ سعراتهم؛ الأفضل الاعتماد على الأكل أولاً.",
+   cre:`الجرعة المقدّرة لك: ${Math.min(5,Math.max(3,Math.round((w||70)*.05*2)/2))} غ يومياً (النطاق 3–5 غ)، كل يوم بلا انقطاع. التحميل (20 غ/يوم لـ 5–7 أيام) اختياري. اشرب ماء كافياً.`,
+   pre:`كافيين 3–6 ملغ/كغ = ${Math.round((w||70)*3)}–${Math.min(400,Math.round((w||70)*6))} ملغ قبل التمرين بـ 30–60 د. الحد اليومي ≈ 400 ملغ من كل المصادر، وتجنّبه قبل النوم بـ 6–8 ساعات.`,
+   cit:"6–8 غ قبل التمرين بـ 30–60 دقيقة.",
+   om3:"250–500 ملغ EPA+DHA يومياً للصحة العامة، مع وجبة فيها دهون.",
+   vd:"الاحتياج اليومي 600–800 وحدة دولية، والحد الأعلى المأمون 4000 وحدة؛ الأفضل فحص الدم قبل الجرعات العالية.",
+   mg:"الاحتياج 310–420 ملغ من كل المصادر، والحد الأعلى للمكملات 350 ملغ يومياً؛ الجرعات العالية قد تسبب إسهالاً."};
+  return m[s.id]||"اتبع الجرعة المكتوبة على ملصق المنتج.";
+}
+function vGymSupp(){
+  const S=sups(), w=prof().w, T=totals(), k=dk(new Date()), cs=(D.gs||{})[k]||{};
+  const lo=w?Math.round(w*1.6):null, hi=w?Math.round(w*2.2):null, gap=lo?Math.max(0,lo-T.p):0;
+  const pw=(S.find(x=>x.p>=15)||PRE[0]).p, st=suppT();
+  let h=`<div class="card"><b>🎯 تقدير جرعتك اليوم</b>${w?`<p>هدف البروتين لبناء العضلات: <b>${lo}–${hi} غ</b> (1.6–2.2 غ لكل كيلو)<br>بروتينك اليوم (أكل + مكملات): <b>${r1(T.p)} غ</b>${gap>0?`<br>ينقصك ≈ <b>${Math.round(gap)} غ</b> ≈ <b>${Math.ceil(gap/pw)} سكوب واي</b> (${pw} غ بروتين للسكوب)`:`<br>✅ غطّيت الحد الأدنى`}</p>`:`<p class="mut">أدخل وزنك في «ملفي الصحي» (تبويب الوجبات) ليحسب لك الجرعات.</p>`}
+    <small class="mut">من المكملات اليوم: ${r1(st.p)} غ بروتين • ${Math.round(st.k)} سعرة (تُضاف تلقائياً لتبويب الوجبات).</small></div>`;
+  S.forEach(s=>{
+    const n=cs[s.id]||0; let tot=0; for(let i=0;i<7;i++) tot+=((D.gs||{})[dk(ago(i))]||{})[s.id]||0;
+    const F=(key,lbl,v)=>`<label style="flex:1"><small class="mut">${lbl}</small><input type="number" step="0.1" value="${v}" onchange="supE('${s.id}','${key}',this.value)" style="margin:2px 0 0;padding:8px"></label>`;
+    h+=`<div class="card"><div class="row" style="margin:0"><b style="flex:1">${s.n}</b><button class="del" onclick="supDel('${s.id}')">🗑</button></div>
+      ${s.x?`<small class="mut">${s.x}</small>`:""}
+      <div style="font-size:34px;font-weight:bold;margin:8px 0;color:var(--ac)">${n} <small>${s.u} اليوم</small></div>
+      <div class="row"><button class="del" style="width:70px;padding:12px 0" onclick="supInc('${s.id}',-1)">−1</button><button style="margin:0" onclick="supInc('${s.id}',.5)">+½</button><button style="margin:0" onclick="supInc('${s.id}',1)">+1 ${s.u}</button></div>
+      <small>= ${r1(n*s.p)} غ بروتين • ${Math.round(n*s.k)} سعرة • آخر 7 أيام: ${r1(tot)} ${s.u} (متوسط ${r1(tot/7)}/يوم)</small>
+      <p style="line-height:1.9;margin:8px 0"><small>💡 ${supDose(s,w)}</small></p>
+      <small class="mut">القيم لكل ${s.u} (عدّلها حسب ملصق منتجك):</small>
+      <div class="row">${F("g","غ",s.g)}${F("p","بروتين",s.p)}${F("c","كارب",s.c)}${F("f","دهون",s.f)}${F("k","سعرة",s.k)}</div></div>`;
+  });
+  const rest=PRE.filter(p=>!S.find(x=>x.id===p.id));
+  h+=`<div class="card"><b>➕ أضف مكملاً</b>${rest.length?`<select id="spa">${rest.map(p=>`<option value="${p.id}">${p.n}</option>`).join("")}</select><button onclick="supAdd()">إضافة</button>`:""}
+    <input id="spn" placeholder="أو مكمل مخصص: الاسم"><div class="row"><input id="spg" type="number" placeholder="غ" style="margin:0"><input id="spp" type="number" placeholder="بروتين" style="margin:0"><input id="spk" type="number" placeholder="سعرة" style="margin:0"></div>
+    <button style="background:#242934;color:var(--tx)" onclick="supCustom()">إضافة المخصص</button></div>
+    <small class="mut" style="display:block;line-height:1.9">⚠️ القيم أعلاه متوسطات شائعة وتختلف بين العلامات التجارية. المكملات تكمّل الأكل ولا تعوّضه. استشر طبيبك قبل استعمالها إن كنت مصاباً بأمراض الكلى أو حاملاً أو ترضع أو تتناول أدوية.</small>`;
+  return h;
+}
+function supInc(id,a){ const k=dk(new Date()); D.gs=D.gs||{}; const c=D.gs[k]=D.gs[k]||{}; c[id]=Math.max(0,(c[id]||0)+a); save(); render(); }
+function supE(id,key,v){ const s=sups().find(x=>x.id===id); s[key]=+v||0; save(); render(); }
+function supDel(id){ if(confirm("حذف هذا المكمل من قائمتك؟")){ D.sup=D.sup.filter(x=>x.id!==id); save(); render(); } }
+function supAdd(){ const p=PRE.find(x=>x.id===$v("spa")); if(p){ sups().push({...p}); save(); render(); } }
+function supCustom(){ const n=$v("spn").trim(); if(!n) return toast("كتب اسم المكمل"); sups().push({id:"c"+Date.now(),n,u:"سكوب",g:+$v("spg")||0,p:+$v("spp")||0,c:0,f:0,k:+$v("spk")||0}); save(); render(); }
+/* --- البرنامج --- */
+const PRG=[
+ {n:"Full Body × 3 أيام (للمبتدئ)",d:[["يوم A",[["Back Squat","3×6–8"],["Bench Press","3×6–8"],["Barbell Row","3×8–10"],["Lateral Raise","2×12–15"],["Ab Wheel Rollout","2×10–12"]]],
+   ["يوم B",[["Romanian Deadlift","3×8–10"],["Overhead Press","3×6–8"],["Lat Pulldown","3×8–10"],["Leg Curl","2×10–12"],["Barbell Curl","2×10–12"]]],
+   ["يوم C",[["Leg Press","3×8–12"],["Incline Dumbbell Press","3×8–10"],["Seated Cable Row","3×8–10"],["Triceps Pushdown","2×10–12"],["Hanging Leg Raise","2×10–12"]]]]},
+ {n:"Upper / Lower × 4 أيام",d:[["Upper 1",[["Bench Press","3×6–8"],["Barbell Row","3×6–8"],["Overhead Press","3×8–10"],["Lat Pulldown","3×8–10"],["Barbell Curl","2×10–12"],["Triceps Pushdown","2×10–12"]]],
+   ["Lower 1",[["Back Squat","3×6–8"],["Romanian Deadlift","3×8–10"],["Leg Press","3×10–12"],["Leg Curl","2×10–12"],["Calf Raise","3×10–15"]]],
+   ["Upper 2",[["Incline Dumbbell Press","3×8–10"],["Seated Cable Row","3×8–10"],["Lateral Raise","3×12–15"],["Pull-Up","3×6–10"],["Hammer Curl","2×10–12"],["Overhead Triceps Extension","2×10–12"]]],
+   ["Lower 2",[["Deadlift","3×4–6"],["Walking Lunge","3×10–12"],["Leg Extension","3×10–12"],["Leg Curl","2×10–12"],["Calf Raise","3×10–15"]]]]},
+ {n:"Push / Pull / Legs (3 أو 6 أيام)",d:[["Push",[["Bench Press","3×6–8"],["Overhead Press","3×8–10"],["Incline Dumbbell Press","3×8–12"],["Lateral Raise","3×12–15"],["Triceps Pushdown","3×10–12"]]],
+   ["Pull",[["Barbell Row","3×6–8"],["Pull-Up","3×6–10"],["Seated Cable Row","3×8–12"],["Face Pull","3×12–15"],["Barbell Curl","3×8–12"]]],
+   ["Legs",[["Back Squat","3×6–8"],["Romanian Deadlift","3×8–10"],["Leg Press","3×10–12"],["Leg Curl","3×10–12"],["Calf Raise","4×10–15"]]]]}
+];
+function vGymProg(){
+  const P=PRG[gymP];
+  let h=`<div class="card"><b>📋 البرنامج</b><select onchange="gymP=+this.value;render()">${PRG.map((p,i)=>`<option value="${i}" ${i===gymP?"selected":""}>${p.n}</option>`).join("")}</select>
+    <small class="mut">اضغط على أي تمرين لتسجّله في جلستك. الأرقام: مجموعات × تكرارات.</small></div>`;
+  P.d.forEach(([dn,l])=>{ h+=`<div class="card"><b>${dn}</b>`+l.map(([e,sr])=>`<div class="task" onclick="gymEx='${e}';gymT='l';render()"><div class="t">${e}<br><small>${(EX.find(x=>x[0]===e)||[])[1]||""}</small></div><b>${sr}</b></div>`).join("")+`</div>`; });
+  return h+`<div class="card"><b>✅ قواعد بناء العضلات (مبنية على الأدلة)</b><div style="line-height:2;font-size:15px">
+    • <b>البروتين:</b> 1.6–2.2 غ لكل كيلو من وزنك يومياً.<br>• <b>السعرات:</b> فائض 250–500 سعرة للتضخيم النظيف.<br>• <b>الحجم:</b> 10–20 مجموعة صعبة لكل عضلة أسبوعياً.<br>• <b>التكرارات:</b> 6–12 غالباً، وأنهِ المجموعة قرب الفشل (RIR 1–3).<br>• <b>الراحة:</b> 2–3 دقائق للمركبة و1–2 للعزل.<br>• <b>التكرار الأسبوعي:</b> درّب كل عضلة مرتين أسبوعياً.<br>• <b>الحمل التدريجي:</b> زد وزناً أو تكراراً بانتظام.<br>• <b>النوم:</b> 7–9 ساعات، فالعضلة تنمو أثناء الراحة.<br>• <b>Deload:</b> أسبوع تخفيف كل 4–8 أسابيع.<br>• <b>الإحماء:</b> 2–3 مجموعات بأوزان تصاعدية قبل أول تمرين مركب.<br>• <b>الماء والكرياتين والنوم والأكل</b> أهم من أي مكمل آخر.</div></div>`;
+}
+/* --- التقدم والتقدير --- */
+function vGymStat(){
+  const L=D.gl||[], inR=(a,b)=>L.filter(x=>x.d>=dk(ago(b))&&x.d<=dk(ago(a))), A=inR(0,6), B=inR(7,13);
+  const vol=l=>l.reduce((s,x)=>s+x.w*x.r,0), ses=l=>new Set(l.map(x=>x.d)).size, dv=vol(B)?Math.round((vol(A)-vol(B))/vol(B)*100):null;
+  let h=`<div class="card"><b>📊 تقريرك الأسبوعي</b><p>الجلسات: <b>${ses(A)}</b> (الأسبوع الماضي ${ses(B)})<br>المجموعات: <b>${A.length}</b><br>الحجم: <b>${nf(vol(A))} كغ</b>${dv===null?"":` (${dv>=0?"+":""}${dv}% عن الأسبوع الماضي)`}</p></div>`;
+  const cnt={}; A.forEach(x=>{const m=(EX.find(e=>e[0]===x.ex)||[])[2]; if(m) cnt[m]=(cnt[m]||0)+1;});
+  h+=`<div class="card"><b>💪 مجموعات كل عضلة هذا الأسبوع</b><small class="mut" style="display:block">المطلوب: 10–20 مجموعة صعبة</small>`+
+    Object.keys(MU).map(m=>{const n=cnt[m]||0, col=n<10?"#f97316":n<=20?"#34d399":"#fbbf24"; return `<div class="row"><span style="width:70px">${MU[m]}</span><div class="track"><i style="width:${Math.min(100,n/20*100)}%;background:${col}"></i></div><small style="width:34px;text-align:left">${n}</small></div>`;}).join("")+`</div>`;
+  const ex={}; L.forEach(x=>(ex[x.ex]=ex[x.ex]||[]).push(x));
+  const rows=Object.entries(ex).map(([n,l])=>{const all=Math.max(...l.map(x=>e1(x.w,x.r))), old=l.filter(x=>x.d<dk(ago(6))), prev=old.length?Math.max(...old.map(x=>e1(x.w,x.r))):0, nw=Math.max(0,...l.filter(x=>x.d>=dk(ago(6))).map(x=>e1(x.w,x.r))); return `<div class="task"><div class="t">${n}</div><b>${r1(all)} كغ</b>${prev&&nw>prev?" 🆕 PR":""}</div>`;});
+  h+=`<div class="card"><b>🏆 أرقامك القياسية (e1RM)</b>${rows.length?rows.join(""):`<p class="mut">سجّل مجموعات لتظهر أرقامك.</p>`}</div>`;
+  return h+vProj();
+}
+function vProj(){
+  const p=prof(), c=calc(), g=D.gg=D.gg||{mode:"b",lv:"n"};
+  const sel=`<select onchange="D.gg.mode=this.value;save();render()"><option value="b" ${g.mode==="b"?"selected":""}>الهدف: تضخيم (Bulk)</option><option value="c" ${g.mode==="c"?"selected":""}>الهدف: تنشيف (Cut)</option><option value="m" ${g.mode==="m"?"selected":""}>الهدف: ثبات (Maintenance)</option></select>
+    <select onchange="D.gg.lv=this.value;save();render()"><option value="n" ${g.lv==="n"?"selected":""}>مبتدئ (أقل من سنة)</option><option value="i" ${g.lv==="i"?"selected":""}>متوسط (1–3 سنوات)</option><option value="a" ${g.lv==="a"?"selected":""}>متقدم (3+ سنوات)</option></select>`;
+  if(!p.w) return `<div class="card"><b>🔮 تقدير الوصول</b>${sel}<p class="mut">أدخل وزنك في «ملفي الصحي» لحساب التقدير.</p></div>`;
+  const w=p.w, mus={n:1.25,i:.75,a:.35}[g.lv], mk=w*mus/100/4.33;
+  let rate=0, label="";
+  if(g.mode==="b"){ rate=Math.min(mk*2,w*.005); label="زيادة"; } else if(g.mode==="c"){ rate=-w*.007; label="نزول"; }
+  const delta=Math.round(rate*7700/7), tdee=c?Math.round(c.bmr*p.act):null, kcal=tdee?tdee+delta:null;
+  const pr=Math.round(w*(g.mode==="c"?2.2:g.mode==="b"?2:1.8)), fat=Math.round(w*.9), carb=kcal?Math.max(0,Math.round((kcal-pr*4-fat*9)/4)):null;
+  let h=`<div class="card"><b>🔮 تقدير الوصول</b>${sel}`;
+  h+=g.mode==="m"?`<p>ثبات الوزن: تدرّب بحمل تدريجي وحافظ على سعراتك.</p>`:`<p>الوتيرة الواقعية: <b>${r1(Math.abs(rate))} كغ/أسبوع</b> (${label}) ${g.mode==="b"?`<br>نمو عضلي متوقع ≈ <b>${r1(mk)} كغ/أسبوع</b>`:`<br>الهدف: حفظ العضلات بالبروتين العالي والتدريب`}<br>${tdee?`سعرات الصيانة ≈ ${tdee} → الهدف <b>${kcal} سعرة/يوم</b> (${delta>0?"+":""}${delta})`:`أكمل العمر والطول في ملفي الصحي لحساب السعرات`}</p>`;
+  h+=`<p>🥩 بروتين: <b>${pr} غ</b> • 🥑 دهون: <b>${fat} غ</b>${carb!==null?` • 🍚 كربوهيدرات: <b>${carb} غ</b>`:""}</p>`;
+  if(g.mode!=="m"){
+    h+=`<div class="task"><div class="t"><b>الأسبوع</b></div><b style="width:90px">الوزن</b>${g.mode==="b"?`<b style="width:90px">عضلات</b>`:""}</div>`+
+      [1,2,4,8,12].map(k=>`<div class="task"><div class="t">${k}</div><span style="width:90px">${r1(w+rate*k)} كغ</span>${g.mode==="b"?`<span style="width:90px">+${r1(mk*k)} كغ</span>`:""}</div>`).join("");
+  }
+  return h+`<small class="mut" style="display:block;margin-top:10px;line-height:1.8">⚠️ تقدير تقريبي بافتراض التزامك بالتمرين والأكل والنوم. التقدم الحقيقي يتباطأ مع الوقت ويختلف من شخص لآخر (الوراثة، النوم، الهرمونات). عدّل السعرات كل 2–3 أسابيع حسب وزنك الفعلي.</small></div>`;
+}
+/* --- القاموس --- */
+const GL=[
+["Set (مجموعة)","عدد من التكرارات المتتالية تؤديها قبل أن تستريح."],
+["Rep (تكرار)","أداء حركة التمرين مرة واحدة كاملة."],
+["Working Set (مجموعة عمل)","مجموعة فعلية قريبة من الفشل وتُحسب ضمن الحجم، بخلاف مجموعات الإحماء."],
+["Warm-up Set (إحماء)","مجموعة بوزن أخف لتجهيز العضلات والمفاصل قبل مجموعات العمل."],
+["1RM","أقصى وزن تستطيع رفعه لتكرار واحد بتقنية سليمة. وe1RM هو تقدير له: الوزن × (1 + التكرارات ÷ 30) (معادلة Epley)."],
+["RPE","مقياس الجهد من 1 إلى 10. RPE 10 = لا تستطيع تكراراً إضافياً، وRPE 8 = بقي في الخزان تكراران تقريباً."],
+["RIR (Reps In Reserve)","عدد التكرارات التي كان بإمكانك أداؤها قبل الفشل. RIR 2 يعادل تقريباً RPE 8."],
+["Failure (الفشل العضلي)","النقطة التي لا تستطيع بعدها إكمال تكرار آخر بتقنية سليمة."],
+["Progressive Overload (الحمل التدريجي)","زيادة الصعوبة مع الوقت (وزن، تكرارات، مجموعات أو جودة الأداء) ليستمر الجسم في التكيّف."],
+["Double Progression","ثبّت الوزن وزد التكرارات حتى تبلغ الحد الأعلى في كل المجموعات (مثلاً 12)، ثم زد الوزن وارجع للحد الأدنى."],
+["Volume (الحجم التدريبي)","مجموع العمل: الوزن × التكرارات × المجموعات، أو عدد المجموعات الصعبة لكل عضلة أسبوعياً (الشائع 10–20)."],
+["Intensity (الشدة)","ثقل الوزن نسبةً إلى 1RM، مثلاً 80% من 1RM."],
+["Frequency (التكرار الأسبوعي)","كم مرة تدرّب العضلة في الأسبوع. مرتان أسبوعياً غالباً أفضل من مرة."],
+["Hypertrophy (التضخم العضلي)","زيادة حجم الألياف العضلية، وهو هدف تمارين بناء العضلات."],
+["Compound (تمرين مركب)","يشغّل عدة مفاصل وعضلات معاً، مثل السكوات والبنش والديدلفت."],
+["Isolation (تمرين عزل)","يشغّل مفصلاً واحداً وعضلة رئيسية، مثل Biceps Curl وLeg Extension."],
+["Superset","أداء تمرينين متتاليين بلا راحة بينهما."],
+["Drop Set","بعد الفشل تخفض الوزن فوراً وتكمل تكرارات إضافية."],
+["Rest Interval (فترة الراحة)","الاستراحة بين المجموعات: نحو 2–3 دقائق للمركبة و1–2 للعزل."],
+["Tempo (الإيقاع)","سرعة أداء التكرار. مثلاً 3-1-1-0: ثلاث ثوانٍ نزولاً، ثانية توقف بالأسفل، ثانية صعوداً، بلا توقف بالأعلى."],
+["Eccentric / Concentric / Isometric","الإطالة تحت الحمل (النزول) / التقصير (الصعود) / الثبات بلا حركة."],
+["ROM (مدى الحركة)","مدى حركة المفصل. المدى الكامل غالباً أفضل للتضخم."],
+["TUT (Time Under Tension)","الزمن الذي تبقى فيه العضلة تحت الشد خلال المجموعة."],
+["Mind-Muscle Connection","تركيز ذهني على العضلة المستهدفة أثناء الحركة."],
+["PR (Personal Record)","رقمك القياسي الشخصي: أثقل وزن أو أكثر تكرارات."],
+["Plateau (ثبات الأداء)","توقف التقدم لفترة. يُعالج بالنوم والأكل الكافي وتعديل الحجم أو أسبوع Deload."],
+["Deload","أسبوع تخفيف (حجم أو وزن أقل بنحو 40–50%) كل 4–8 أسابيع للتعافي."],
+["DOMS","ألم العضلات المتأخر، يظهر بعد 24–72 ساعة من تمرين جديد أو شديد، وليس مقياساً لجودة التمرين."],
+["Split (تقسيم التمارين)","طريقة توزيع العضلات على الأسبوع: Full Body وUpper/Lower وPush/Pull/Legs وBro Split."],
+["Push / Pull / Legs","دفع (صدر، أكتاف، ترايسبس) / سحب (ظهر، بايسبس) / أرجل."],
+["Bulk (تضخيم)","فائض سعرات لبناء العضلات."],
+["Cut (تنشيف)","عجز سعرات لخسارة الدهون مع الحفاظ على العضلات."],
+["Recomp","بناء عضلات وخسارة دهون في آن واحد، ويحدث غالباً عند المبتدئين."],
+["BMR / TDEE","معدل الحرق الأساسي / إجمالي الحرق اليومي مع النشاط."],
+["Macros (الماكروز)","المغذيات الكبرى: بروتين وكربوهيدرات ودهون."],
+["Spotter","شريك يساعدك على الأمان عند الفشل، خاصة في البنش والسكوات."],
+["Pump (البمب)","امتلاء العضلة بالدم أثناء التمرين."],
+["LISS / HIIT","كارديو ثابت منخفض الشدة / كارديو متقطع عالي الشدة."],
+["Scoop (سكوب)","المغرفة المرفقة بالعبوة. وزنها يختلف حسب المنتج (غالباً 30–35 غ للواي و5 غ للكرياتين)، فاقرأ الملصق."],
+["Whey Protein (واي)","بروتين مصل اللبن سريع الامتصاص. Concentrate ≈ 70–80% بروتين، وIsolate ≈ 90%+ وقليل اللاكتوز، وHydrolyzed مجزّأ مسبقاً."],
+["Casein (كازين)","بروتين بطيء الهضم، مناسب قبل النوم."],
+["Creatine Monohydrate (كرياتين)","أكثر مكمل مدروساً لزيادة القوة والأداء. 3–5 غ يومياً، ويزيد الماء داخل العضلة فيرتفع الوزن قليلاً."],
+["Loading Phase (التحميل)","20 غ كرياتين يومياً مقسمة لـ 5–7 أيام ثم 3–5 غ يومياً. اختياري، فالجرعة اليومية وحدها تصل للتشبع بعد نحو 4 أسابيع."],
+["BCAA / EAA","أحماض أمينية. غالباً غير ضرورية إذا غطّيت بروتينك اليومي."],
+["Pre-Workout","مكمل قبل التمرين، عادةً كافيين مع سيترولين وغيره."],
+["Citrulline Malate","يحسّن التحمل وتدفق الدم، 6–8 غ قبل التمرين."],
+["Beta-Alanine","يؤخر التعب. يسبب وخزاً (Paresthesia) غير ضار."],
+["Omega-3 (EPA/DHA)","دهون صحية تدعم القلب وتقلل الالتهاب."],
+["Vitamin D3 / Magnesium","مكملان يغطيان نقصاً شائعاً؛ يُفضّل فحص الدم لمعرفة حاجتك."]];
+function glFilter(v){ v=v.toLowerCase(); document.querySelectorAll(".gl").forEach(e=>{ e.style.display=(e.dataset.t||"").includes(v)?"":"none"; }); }
+function vGlossary(){
+  return `<div class="card"><b>📖 قاموس الجيم</b><input placeholder="ابحث عن مصطلح..." oninput="glFilter(this.value)"></div>`+
+    GL.map(([t,d])=>`<div class="card gl" data-t="${esc((t+" "+d).toLowerCase())}"><b>${t}</b><p style="line-height:1.9;margin:6px 0 0">${d}</p></div>`).join("");
+}
+
+/* ===== المساعد الذكي + الإضافات ===== */
+const PL={tabs:[],cards:{},ticks:[],fn:{}};
+const App={
+  get D(){ return D; }, save:()=>save(), render:()=>render(), toast:m=>toast(m), esc:t=>esc(t), dk:d=>dk(d),
+  val:id=>{ const e=document.getElementById(id); return e?e.value:""; },
+  store:id=>{ D.px=D.px||{}; return D.px[id]=D.px[id]||{}; },
+  addTab:o=>{ const id="pl_"+o.id; if(!PL.tabs.find(t=>t.id===id)) PL.tabs.push({...o,id}); },
+  addCard:(t,f)=>{ (PL.cards[t]=PL.cards[t]||[]).push(f); },
+  onTick:f=>PL.ticks.push(f), fn:PL.fn
+};
+const BAD=/fetch\s*\(|XMLHttpRequest|eval\s*\(|new\s+Function|Function\s*\(|localStorage|sessionStorage|indexedDB|document\.cookie|window\.open|\blocation\b|import\s*\(|WebSocket|sendBeacon|firebase|\.constructor/;
+const BAD2=/<script|<iframe|javascript:/i;
+const plBad=c=>{ const m=BAD.exec(c)||BAD2.exec(c); return m?m[0]:null; };
+function plRun(p){
+  try{
+    new Function("App","window","document","localStorage","sessionStorage","fetch","XMLHttpRequest","indexedDB","navigator","location","firebase",'"use strict";\n'+p.code)(App);
+    p.err=""; return true;
+  }catch(e){ p.err=String(e.message||e).slice(0,140); p.on=false; save(); toast("⚠️ الإضافة «"+p.title+"» فيها خطأ وتوقفت"); return false; }
+}
+function plLoadAll(){
+  PL.tabs=[]; PL.cards={}; PL.ticks=[]; Object.keys(PL.fn).forEach(k=>delete PL.fn[k]);
+  if((location.search||"").includes("safe=1")) return;
+  (D.pl||[]).filter(p=>p.on).forEach(p=>{ if(plBad(p.code)){ p.on=false; p.err="كود غير مسموح"; } else plRun(p); });
+}
+function plTab(){ const t=PL.tabs.find(x=>x.id===tab); try{ return t.render(); }catch(e){ return `<div class="card">⚠️ خطأ في الإضافة: ${esc(e.message)}</div>`; } }
+function plCards(t){ return (PL.cards[t]||[]).map(f=>{ try{ return f(); }catch(e){ return ""; } }).join(""); }
+function plToggle(id){ const p=D.pl.find(x=>x.id===id); p.on=!p.on; p.err=""; save(); plLoadAll(); render(); }
+function plDel(id){ if(confirm("حذف هذه الإضافة؟")){ D.pl=D.pl.filter(x=>x.id!==id); save(); plLoadAll(); render(); } }
+function plSaveCode(id){
+  const c=document.getElementById("plc_"+id).value, bad=plBad(c); if(bad) return toast("الكود فيه شيء ممنوع: "+bad);
+  const p=D.pl.find(x=>x.id===id); p.code=c; p.err=""; save(); plLoadAll(); render(); toast("تم حفظ الكود");
+}
+function plOff(){ (D.pl||[]).forEach(p=>p.on=false); save(); plLoadAll(); render(); toast("تم إيقاف كل الإضافات"); }
+function plUndo(){
+  const raw=localStorage.getItem("routine_pre_plugin"); if(!raw) return toast("ما كاينش نسخة محفوظة");
+  if(!confirm("نسترجعو نسخة التطبيق اللي كانت قبل آخر إضافة؟")) return;
+  D=JSON.parse(raw); D._t=Date.now(); save(); plLoadAll(); render(); toast("تم الاسترجاع ✅");
+}
+/* --- الاتصال بالذكاء الاصطناعي (OpenRouter، نماذج :free) --- */
+const AIC=()=>{ try{ return JSON.parse(localStorage.getItem("routine_ai"))||{}; }catch(e){ return {}; } };
+const AIS=o=>{ try{ localStorage.setItem("routine_ai",JSON.stringify({...AIC(),...o})); }catch(e){} };
+let aiMsgs=[], aiBusy=false, aiList=[], aiDraft="";
+const aiSys=()=>`You extend a personal routine web app (RTL, Arabic, dark UI) by writing small JavaScript plugins. The user writes Moroccan Darija or Arabic.
+Reply in EXACTLY this plain-text format (no markdown fences):
+SAY: <short friendly reply in the user's language>
+TITLE: <short Arabic title>   (only if you write a plugin)
+DESC: <one-line Arabic description>   (only if you write a plugin)
+CODE:
+<JavaScript function body>
+END
+If no code is needed (a question, advice), reply with just the SAY line.
+The code runs in strict mode as a function body with ONE parameter: App. There is no window, document, fetch, localStorage or eval. API:
+App.D = live app data (read/write, then call App.save()). Keys: D.tasks[{id,cat,title,time,days}], D.cats[{id,name,icon,color}], D.done{"YYYY-MM-DD":[taskIds]}, D.money{budget,tx[{d,t:"x"|"i",c,a,n}]}, D.goals[], D.wt{date:kg}, D.sleep{date:{h,q}}, D.steps{date:n}, D.water{date:ml}, D.gl[{d,ex,w,r}], D.prof{sex,age,w,h}.
+App.save(); App.render(); App.toast(msg); App.esc(text); App.dk(dateObj)->"YYYY-MM-DD"; App.val(inputId)->string.
+App.store(key) = persistent object for the plugin's OWN data (always keep plugin data there).
+App.addTab({id,label,icon,render:function(){return htmlString}}) adds a bottom tab.
+App.addCard(tabName,function(){return htmlString}) appends a card to a built-in tab: today, din, meals, week, money, gym, manage.
+App.onTick(fn) runs every 15 seconds.
+Handlers: App.fn.myPrefixName=function(){...}; in HTML call onclick="App.fn.myPrefixName()". After changing data call App.save();App.render();
+HTML must reuse the app CSS classes: card, row, chips, chip (+ class on when selected), task, track>i (progress bar, width in %), mut or small (muted text), del (small red button), and plain input/select/button/textarea. Never use script tags, iframes, javascript: URLs, or network/storage calls. Keep code under 120 lines, defensive (check data exists), Arabic UI text.
+Example plugin code (coffee counter on the Today tab):
+const s=App.store('coffee'); const k=App.dk(new Date());
+App.fn.coffeeAdd=function(){ s[k]=(s[k]||0)+1; App.save(); App.render(); };
+App.addCard('today',function(){ return '<div class="card"><b>☕ القهوة</b><div style="font-size:30px">'+(s[k]||0)+'</div><button onclick="App.fn.coffeeAdd()">+1</button></div>'; });`;
+function aiParse(raw,m){
+  const o={SAY:"",TITLE:"",DESC:"",CODE:""}; let cur=null;
+  raw.replace(/```[a-z]*\n?/gi,"").split("\n").forEach(l=>{
+    const x=/^(SAY|TITLE|DESC|CODE):\s?(.*)$/.exec(l);
+    if(x){ cur=x[1]; o[cur]=x[2]; } else if(/^END\s*$/.test(l)){ cur=null; } else if(cur){ o[cur]+="\n"+l; }
+  });
+  const code=o.CODE.trim();
+  return {r:"ai",c:(o.SAY||(!code&&raw)||"").trim(),pl:code?{title:(o.TITLE||"إضافة").trim(),desc:o.DESC.trim(),code}:null,raw,m};
+}
+async function aiFetchModels(){
+  try{
+    const j=await (await fetch("https://openrouter.ai/api/v1/models")).json();
+    aiList=j.data.map(m=>m.id).filter(id=>id.endsWith(":free")).sort((a,b)=>(/coder|qwen/.test(b)?1:0)-(/coder|qwen/.test(a)?1:0));
+    toast("تم جلب "+aiList.length+" نموذج مجاني"); render();
+  }catch(e){ toast("تعذّر جلب قائمة النماذج"); }
+}
+async function aiAsk(){
+  const q=(document.getElementById("aiq")||{}).value; aiDraft="";
+  if(!q||!q.trim()||aiBusy) return;
+  const C=AIC(); if(!C.key) return toast("حط مفتاح OpenRouter أولاً (الإعدادات)");
+  aiMsgs.push({r:"user",c:q.trim()}); aiBusy=true; render();
+  const hist=aiMsgs.slice(-6).map(m=>({role:m.r==="user"?"user":"assistant",content:m.raw||m.c}));
+  const tries=[C.model||"qwen/qwen3-coder:free",...aiList.filter(m=>m!==C.model).slice(0,2)];
+  let ok=false, err="";
+  for(const mdl of tries){
+    try{
+      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+C.key,"X-Title":"Routine"},body:JSON.stringify({model:mdl,messages:[{role:"system",content:aiSys()},...hist],temperature:.2})});
+      const j=await r.json(); if(!r.ok) throw new Error((j.error&&j.error.message)||("HTTP "+r.status));
+      aiMsgs.push(aiParse((j.choices[0].message.content||"").trim(),mdl)); ok=true; break;
+    }catch(e){ err=e.message; }
+  }
+  if(!ok) aiMsgs.push({r:"ai",c:"⚠️ تعذّر الاتصال: "+err+"\n(النماذج المجانية: 20 طلب/دقيقة و50 طلب/يوم، وقد يتوقف بعضها مؤقتاً.)",raw:""});
+  aiBusy=false; render();
+}
+function aiApply(i){
+  const p=aiMsgs[i].pl; if(!p) return;
+  const bad=plBad(p.code); if(bad) return toast("الكود فيه شيء ممنوع: "+bad);
+  if(!confirm("تفعيل إضافة «"+p.title+"»؟\nغندير نسخة احتياطية قبل التفعيل.")) return;
+  try{ localStorage.setItem("routine_pre_plugin",JSON.stringify(D)); }catch(e){}
+  (D.pl=D.pl||[]).push({id:"p"+Date.now(),title:p.title,desc:p.desc,code:p.code,on:true});
+  save(); plLoadAll(); aiMsgs[i].pl=null; aiMsgs[i].c+="\n✅ تم تفعيل الإضافة"; render();
+}
+function vAI(){
+  const C=AIC(), P=D.pl||[], ex=["زيد ف صفحة اليوم عدّاد للقهوة ☕","أضف قائمة التسوق ف تبويب جديد","زيد ف صفحة المال حساب نسبة الادخار من الدخل"];
+  let h=`<div class="card"><b>🤖 مساعد التطبيق</b><br><small class="mut" style="line-height:1.9">قل له شنو بغيتي تزيد ف التطبيق (بالدارجة أو العربية)، فيكتب الكود ويبني إضافة تعاينها وتفعلها أو تحذفها. يشتغل بنماذج ذكاء اصطناعي مفتوحة المصدر مجانية عبر OpenRouter بمفتاحك الخاص.</small></div>
+  <details class="card" ${C.key?"":"open"}><summary><b>⚙️ إعدادات الذكاء الاصطناعي</b></summary>
+    <small class="mut" style="display:block;margin-top:8px;line-height:1.9">1) افتح openrouter.ai/keys وسجّل (بدون بطاقة) وأنشئ مفتاحاً.<br>2) ألصقه هنا. المفتاح يبقى على هذا الجهاز فقط ولا يُرفع للحساب.</small>
+    <input type="password" placeholder="مفتاح OpenRouter (sk-or-...)" value="${esc(C.key||"")}" onchange="AIS({key:this.value.trim()});render()">
+    <input placeholder="النموذج (يجب أن ينتهي بـ :free)" value="${esc(C.model||"qwen/qwen3-coder:free")}" onchange="AIS({model:this.value.trim()})">
+    <button style="background:#242934;color:var(--tx)" onclick="aiFetchModels()">🔄 جلب النماذج المجانية المتاحة الآن</button>
+    ${aiList.length?`<select onchange="AIS({model:this.value});render()">${aiList.map(m=>`<option ${m===C.model?"selected":""}>${esc(m)}</option>`).join("")}</select>`:""}</details>`;
+  aiMsgs.forEach((m,i)=>{
+    if(m.r==="user") h+=`<div style="background:var(--ac);color:#000;border-radius:14px;padding:10px 12px;margin:8px 0 8px 36px;line-height:1.8">${esc(m.c)}</div>`;
+    else {
+      h+=`<div style="background:#242934;border-radius:14px;padding:10px 12px;margin:8px 36px 8px 0;line-height:1.9">${esc(m.c).replace(/\n/g,"<br>")}`;
+      if(m.pl) h+=`<div class="card" style="margin:10px 0 0;border:1px solid var(--ac)"><b>🧩 ${esc(m.pl.title)}</b><br><small class="mut">${esc(m.pl.desc)}</small>
+        <details><summary><small>عرض الكود</small></summary><pre style="white-space:pre-wrap;direction:ltr;text-align:left;font-size:12px;overflow-x:auto">${esc(m.pl.code)}</pre></details>
+        <button onclick="aiApply(${i})">✅ تفعيل الإضافة</button></div>`;
+      if(m.m) h+=`<br><small class="mut">${esc(m.m)}</small>`;
+      h+=`</div>`;
+    }
+  });
+  if(aiBusy) h+=`<div class="mut" style="padding:10px">⏳ جاري التفكير...</div>`;
+  h+=`<div class="card"><textarea id="aiq" rows="3" placeholder="شنو بغيتي نزيدو ف التطبيق؟" oninput="aiDraft=this.value">${esc(aiDraft)}</textarea>
+    <div class="chips">${ex.map(t=>`<span class="chip" onclick="document.getElementById('aiq').value=this.textContent;aiDraft=this.textContent">${t}</span>`).join("")}</div>
+    <button onclick="aiAsk()">إرسال</button></div>`;
+  h+=`<div class="card"><b>🧩 إضافاتي (${P.length})</b>`+(P.length?"":`<p class="mut">ما عندك حتى إضافة بعد.</p>`)+
+    P.map(p=>`<div class="task" style="align-items:flex-start;flex-direction:column"><div class="row" style="width:100%;margin:0"><b style="flex:1">${esc(p.title)}</b><span class="chip ${p.on?"on":""}" onclick="plToggle('${p.id}')">${p.on?"مفعّلة":"موقوفة"}</span><button class="del" onclick="plDel('${p.id}')">🗑</button></div>
+      <small class="mut">${esc(p.desc||"")}</small>${p.err?`<small style="color:#ef4444">⚠️ ${esc(p.err)}</small>`:""}
+      <details style="width:100%"><summary><small>الكود</small></summary><textarea id="plc_${p.id}" rows="8" style="direction:ltr;text-align:left;font-size:12px">${esc(p.code)}</textarea><button onclick="plSaveCode('${p.id}')">حفظ الكود</button></details></div>`).join("")+
+    `<div class="row"><button class="del" style="flex:1;padding:12px" onclick="plOff()">⛔ إيقاف كل الإضافات</button><button class="del" style="flex:1;padding:12px" onclick="plUndo()">↩️ نسخة ما قبل آخر إضافة</button></div>
+    <small class="mut" style="display:block;margin-top:10px;line-height:1.8">⚠️ فعّل فقط الأكواد التي قرأتها وفهمتها. هذا ليس عزلاً أمنياً كاملاً. إذا علق التطبيق بسبب إضافة، افتحه بالرابط مع <b>?safe=1</b> في آخره ليبدأ بلا إضافات.</small></div>`;
+  return h;
+}
+
 /* ===== الإحصائيات ===== */
 function vWeek(){
   let h = vTrack() + `<div class="card"><b>آخر 7 أيام</b><div class="bars">`;
@@ -747,7 +1358,7 @@ function vWeek(){
 function vManage(){
   let h = `${vAcc()}<div class="card"><b>👤 اسمك</b><input value="${esc(D.name)}" placeholder="اسمك" onchange="D.name=this.value;save()"></div>
 
-  ${vRot()}
+  ${vAlarm()}${vRot()}
   <div class="card"><b>🔔 التنبيهات ومواقيت الصلاة</b>
     <button onclick="enNotif()">تفعيل التنبيهات</button>
     <button onclick="loadPray(true)">🕌 ضبط مواقيت الصلاة (بالموقع)</button>
@@ -763,6 +1374,7 @@ function vManage(){
     <input id="ntm" type="time">
     <small class="mut">وقت مختلف حسب الشيفت (اختياري): 🌅 صباح • 🌇 مساء • 🌙 ليل</small>
     <div class="row"><input id="ns_m" type="time" style="margin:0"><input id="ns_e" type="time" style="margin:0"><input id="ns_n" type="time" style="margin:0"></div>
+    <select id="nal"><option value="">بدون منبه</option><option value="1">🔔 مع منبه بشاشة كاملة</option></select>
     <div class="chips">${DN.map((n,i) => `<span class="chip ${nd.includes(i)?"on":""}" onclick="tgd(${i},this)">${n}</span>`).join("")}</div>
     <button onclick="addT()">إضافة المهمة</button></div>
 
@@ -777,7 +1389,7 @@ function vManage(){
       <button class="del" onclick="delC('${c.id}')">حذف القسم</button></div>`;
     D.tasks.filter(t => t.cat===c.id).forEach(t => {
       h += `<div class="task"><div class="t">${esc(t.title)}<br><small>${t.time||"بدون وقت"}${t.st?" "+Object.entries(t.st).map(([k,v])=>SH[k].i+v).join(" "):""} • ${t.days.length===7?"يومياً":t.days.map(i=>DN[i]).join("، ")}</small></div>
-        <button class="del" onclick="delT('${t.id}')">🗑</button></div>`;
+        <button class="del" style="${t.al?"background:var(--ac);color:#000":""}" onclick="taskAl('${t.id}')">🔔</button><button class="del" onclick="delT('${t.id}')">🗑</button></div>`;
     });
     h += `</div>`;
   });
@@ -790,7 +1402,7 @@ function vManage(){
 }
 
 /* ===== الإجراءات ===== */
-function setF(f){ if(f==="meals") return go("meals"); flt = f; render(); }
+function setF(f){ if(f==="meals"||f==="week") return go(f); flt = f; render(); }
 function tgd(i, el){
   nd.includes(i) ? nd = nd.filter(x => x!==i) : nd.push(i);
   el.classList.toggle("on");
@@ -799,7 +1411,7 @@ function addT(){
   const title = document.getElementById("nt").value.trim();
   if (!title || !nd.length) return alert("اكتب اسم المهمة واختر يوماً واحداً على الأقل");
   D.tasks.push({id:"t"+Date.now(), cat:document.getElementById("nc").value, title,
-    time:document.getElementById("ntm").value, days:[...nd], st:stv()});
+    time:document.getElementById("ntm").value, days:[...nd], st:stv(), al:document.getElementById("nal").value?1:0});
   save(); render();
 }
 function addC(){
@@ -823,11 +1435,19 @@ function imp(){
 }
 
 /* ===== التشغيل ===== */
-function go(t){ scanStop(); tab = t; render(); window.scrollTo(0,0); }
+function go(t){ scanStop(); tab = t; tabFade=true; render(); window.scrollTo(0,0); }
 function render(){
   applyTheme();
-  document.getElementById("view").innerHTML = tab==="today" ? vToday() : tab==="din" ? vDin() : tab==="meals" ? vMeals() : tab==="money" ? vMoney() : tab==="week" ? vWeek() : vManage();
-  ["today","din","meals","week","money","manage"].forEach(x => document.getElementById("b-"+x).className = x===tab ? "on" : "");
+  const _h = PL.tabs.find(t=>t.id===tab) ? plTab() : tab==="ai" ? vAI() : tab==="today" ? vToday() : tab==="din" ? vDin() : tab==="meals" ? vMeals() : tab==="money" ? vMoney() : tab==="gym" ? vGym() : tab==="week" ? vWeek() : vManage();
+  document.getElementById("view").innerHTML = _h + plCards(tab);
+  ["today","din","meals","week","money","gym","ai","manage"].forEach(x => document.getElementById("b-"+x).className = x===tab ? "on" : "");
+  { const nv=document.querySelector("nav");
+    document.querySelectorAll("nav button[id^='b-pl_']").forEach(b=>{ if(!PL.tabs.find(t=>"b-"+t.id===b.id)) b.remove(); });
+    PL.tabs.forEach(t=>{ let b=document.getElementById("b-"+t.id);
+      if(!b&&nv&&nv.insertBefore){ b=document.createElement("button"); b.id="b-"+t.id; b.onclick=()=>go(t.id); b.innerHTML=(t.icon||"🧩")+"<br>"+esc(t.label); nv.insertBefore(b,document.getElementById("b-manage")); }
+      if(b) b.className=t.id===tab?"on":""; }); }
+  { const b=document.getElementById("b-"+tab); if(b&&b.scrollIntoView) b.scrollIntoView({inline:"center",block:"nearest"}); }
+  if(tabFade){ const v=document.getElementById("view"); v.classList.remove("fade"); void v.offsetWidth; v.classList.add("fade"); tabFade=false; }
   if(flipNext){ const v=document.getElementById("view"); v.classList.remove("flip"); void v.offsetWidth; v.classList.add("flip"); flipNext=false; }
 }
 render();
@@ -840,7 +1460,9 @@ render();
   D.tasks.forEach(t=>{ if(ST[t.id]&&!t.st) t.st=ST[t.id]; });
   try{ localStorage.setItem(K, JSON.stringify(D)); }catch(e){}
 })();
+plLoadAll(); render();
 setInterval(tick,15000); loadPray(false); cloudInit();
+if(document.addEventListener){ document.addEventListener("click",()=>{ try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); ac.resume(); }catch(e){} },{once:true}); document.addEventListener("visibilitychange",()=>{ if(!document.hidden) tick(); }); }
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
